@@ -27,6 +27,12 @@
     .result { font-weight:700; min-height:28px; margin-top:12px; }
     .small { font-size: 13px; color:var(--muted); }
     .next { margin-top: 10px; padding:12px 16px; border:0; border-radius:12px; background:#111827; color:white; cursor:pointer; display:none; }
+    .importBox { margin-top:18px; padding:16px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+    textarea { width:100%; min-height:130px; padding:12px; border-radius:12px; border:1px solid var(--line); font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; box-sizing:border-box; }
+    .rowBtns { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+    .utility { padding:10px 14px; border-radius:12px; border:1px solid var(--line); background:#f9fafb; cursor:pointer; }
+    .danger { background:#fff1f2; }
+    #importStatus { color:var(--muted); font-size:14px; }
   </style>
 </head>
 <body>
@@ -84,18 +90,36 @@
       <span class="pill">Words loaded: <b id="count">0</b></span>
     </div>
 
+
+    <div class="importBox">
+      <h2 style="margin:0 0 8px;font-size:20px;">Add your own words</h2>
+      <p class="small">Paste a Markdown table, CSV, or tab-separated rows with: German Word, Article, English Translation. Your custom words are saved in this browser and mixed into the quiz without duplicates.</p>
+      <textarea id="importText" placeholder="| German Word | Article | English Translation |
+| Apfel | der | apple |
+| gehen | | to go |"></textarea>
+      <div class="rowBtns">
+        <button class="utility" id="importBtn">Import pasted words</button>
+        <button class="utility" id="exportBtn">Export custom words</button>
+        <button class="utility danger" id="clearCustomBtn">Clear custom words</button>
+      </div>
+      <p id="importStatus"></p>
+    </div>
     <p class="small">Tip: Article and plural drills use noun entries only. Sentence modes use phrase/sentence/example fields.</p>
   </div>
 </main>
 
 <script>
 let words = [];
+let baseWords = [];
+let customWords = [];
 let current = null;
 let answer = "";
 let locked = false;
 let score = Number(localStorage.getItem("score") || 0);
 let total = Number(localStorage.getItem("total") || 0);
 let streak = Number(localStorage.getItem("streak") || 0);
+let sessionSeen = {};
+let lastFilterKey = "";
 
 const $ = id => document.getElementById(id);
 $("score").textContent = score; $("total").textContent = total; $("streak").textContent = streak;
@@ -105,10 +129,26 @@ function clean(s){ return (s || "").trim(); }
 
 async function loadWords(){
   const res = await fetch("words.json");
-  words = await res.json();
-  $("count").textContent = words.length;
+  baseWords = await res.json();
+  customWords = JSON.parse(localStorage.getItem("customWords") || "[]");
+  rebuildWordList();
   populateTopics();
   nextQuestion();
+}
+
+function normalizeGermanKey(w){
+  return clean(w.german).toLowerCase().replace(/^(der|die|das)\s+/i, "");
+}
+
+function rebuildWordList(){
+  const map = new Map();
+  baseWords.forEach(w => map.set(normalizeGermanKey(w), w));
+  customWords.forEach(w => {
+    const key = normalizeGermanKey(w);
+    if(!map.has(key)) map.set(key, w);
+  });
+  words = Array.from(map.values()).map((w,i)=>({...w, id:i+1}));
+  $("count").textContent = words.length;
 }
 
 function populateTopics(){
@@ -139,6 +179,16 @@ function makeChoices(correct, pool, field, n=4){
   return shuffle([correct, ...[...new Set(wrong)].slice(0, n-1)]);
 }
 
+function filterKey(){
+  return [$("mode").value, $("level").value, $("pos").value, $("topic").value].join("|");
+}
+
+function resetSessionForCurrentFilter(){
+  const key = filterKey();
+  sessionSeen[key] = new Set();
+  lastFilterKey = key;
+}
+
 function nextQuestion(){
   locked = false;
   $("next").style.display = "none";
@@ -151,7 +201,20 @@ function nextQuestion(){
     $("choices").innerHTML = "";
     return;
   }
-  current = pool[Math.floor(Math.random()*pool.length)];
+
+  const key = filterKey();
+  if(key !== lastFilterKey || !sessionSeen[key]) resetSessionForCurrentFilter();
+
+  let remaining = pool.filter(w => !sessionSeen[key].has(w.id));
+  if(remaining.length === 0){
+    sessionSeen[key] = new Set();
+    remaining = pool.slice();
+    $("result").textContent = "You finished this set. Starting a fresh round without repetition.";
+  }
+
+  current = remaining[Math.floor(Math.random()*remaining.length)];
+  sessionSeen[key].add(current.id);
+
   const mode = $("mode").value;
   let choices = [];
 
@@ -228,8 +291,122 @@ function choose(btn, choice){
   $("next").style.display = "inline-block";
 }
 
+
+function inferPos(german, article, english){
+  const e = clean(english).toLowerCase();
+  if(article) return "noun";
+  if(e.startsWith("to ") || german.includes(" ") && (german.startsWith("Rad ") || german.includes("putzen"))) return "verb";
+  const adjectiveHints = ["old","new","big","small","fast","slow","hot","cold","nice","sad","clean","dirty","short","long","hard","soft","full","empty","healthy","sick","loud","quiet","high","low","forbidden","worried","sweet","dry","wet","easy","difficult","light","heavy"];
+  if(adjectiveHints.some(a => e.includes(a))) return "adjective";
+  return "other";
+}
+
+function guessTopic(german, english){
+  const t = (german + " " + english).toLowerCase();
+  if(/apfel|banane|brot|käse|milch|essen|saft|kartoffel|tomate|suppe|zucker|salz|kaffee|tee|obst|gemüse/.test(t)) return "food";
+  if(/arzt|krank|kranken|medikament|fieber|apotheke|gesund|körper|auge|ohr|zahn|hand|fuß|kopf/.test(t)) return "health/body";
+  if(/haus|zimmer|küche|bad|bett|tisch|stuhl|fenster|tür|garten|wohnung/.test(t)) return "home";
+  if(/auto|bahn|zug|flug|straße|bus|fahrrad|bahnhof|reise|verkehr/.test(t)) return "travel";
+  if(/schule|lehrer|buch|stift|heft|rechnen|lesen|schreiben/.test(t)) return "school";
+  if(/hund|katze|pferd|vogel|fisch|affe|bär|tier|kuh|schwein|ente/.test(t)) return "animals";
+  if(/mutter|vater|bruder|schwester|familie|oma|opa|onkel|tante|cousin/.test(t)) return "family";
+  if(/montag|dienstag|januar|sommer|winter|morgen|abend|minute|stunde/.test(t)) return "time";
+  return "custom";
+}
+
+function makeEntryFromParts(germanRaw, articleRaw, englishRaw){
+  let word = clean(germanRaw).replace(/^["']|["']$/g, "");
+  let article = clean(articleRaw).toLowerCase();
+  let english = clean(englishRaw).replace(/^["']|["']$/g, "");
+  if(!word || !english || /^german word$/i.test(word)) return null;
+  if(!["der","die","das"].includes(article)) article = "";
+  const pos = inferPos(word, article, english);
+  const german = article ? `${article} ${word}` : word;
+  return {
+    id: 0,
+    german,
+    base: article ? word : undefined,
+    article: article || undefined,
+    plural: "",
+    english,
+    pos,
+    level: "A1",
+    topic: guessTopic(word, english),
+    example: article ? `${article[0].toUpperCase()+article.slice(1)} ${word} ist wichtig.` : "",
+    example_en: article ? `The ${english.split("/")[0].trim()} is important.` : ""
+  };
+}
+
+function parseCustomText(text){
+  const rows = [];
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  for(const line of lines){
+    if(/^\|?\s*-{2,}/.test(line) || /^[-,;\t| ]+$/.test(line)) continue;
+    let parts;
+    if(line.includes("|")){
+      parts = line.split("|").map(x=>x.trim()).filter(x=>x !== "");
+    } else if(line.includes("\t")) {
+      parts = line.split("\t").map(x=>x.trim());
+    } else {
+      parts = line.split(",").map(x=>x.trim());
+    }
+    if(parts.length < 3) continue;
+    const entry = makeEntryFromParts(parts[0], parts[1], parts.slice(2).join(", "));
+    if(entry) rows.push(entry);
+  }
+  return rows;
+}
+
+function importCustomWords(){
+  const parsed = parseCustomText($("importText").value);
+  if(!parsed.length){
+    $("importStatus").textContent = "No valid rows found. Use: German Word | Article | English Translation.";
+    return;
+  }
+  const existing = new Map(customWords.map(w => [normalizeGermanKey(w), w]));
+  let added = 0, skipped = 0;
+  for(const w of parsed){
+    const key = normalizeGermanKey(w);
+    if(existing.has(key) || baseWords.some(b => normalizeGermanKey(b) === key)){
+      skipped++;
+      continue;
+    }
+    existing.set(key, w);
+    added++;
+  }
+  customWords = Array.from(existing.values());
+  localStorage.setItem("customWords", JSON.stringify(customWords));
+  rebuildWordList();
+  populateTopics();
+  resetSessionForCurrentFilter();
+  nextQuestion();
+  $("importStatus").textContent = `Imported ${added} new words. Skipped ${skipped} duplicates. Total loaded: ${words.length}.`;
+}
+
+function exportCustomWords(){
+  const data = JSON.stringify(customWords, null, 2);
+  $("importText").value = data;
+  $("importStatus").textContent = `Exported ${customWords.length} custom words as JSON. Copy and save it if you want a backup.`;
+}
+
+function clearCustomWords(){
+  customWords = [];
+  localStorage.removeItem("customWords");
+  rebuildWordList();
+  populateTopics();
+  resetSessionForCurrentFilter();
+  nextQuestion();
+  $("importStatus").textContent = "Custom words cleared from this browser.";
+}
+
 $("next").onclick = nextQuestion;
-["mode","level","pos","topic"].forEach(id => $(id).onchange = nextQuestion);
+$("importBtn").onclick = importCustomWords;
+$("exportBtn").onclick = exportCustomWords;
+$("clearCustomBtn").onclick = clearCustomWords;
+["mode","level","pos","topic"].forEach(id => $(id).onchange = () => {
+  resetSessionForCurrentFilter();
+  nextQuestion();
+});
 loadWords();
 </script>
 </body>
