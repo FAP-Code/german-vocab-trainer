@@ -1,0 +1,110 @@
+[
+  {
+    "id": 1,
+    "german": "das Haus",
+    "english": "house",
+    "pos": "noun",
+    "level": "A1",
+    "topic": "home",
+    "example": "Das Haus ist groß."
+  },
+  {
+    "id": 2,
+    "german": "gehen",
+    "english": "to go",
+    "pos": "verb",
+    "level": "A1",
+    "topic": "daily life",
+    "example": "Ich gehe nach Hause."
+  },
+  {
+    "id": 3,
+    "german": "wichtig",
+    "english": "important",
+    "pos": "adjective",
+    "level": "A2",
+    "topic": "general",
+    "example": "Das ist wichtig."
+  },
+  {
+    "id": 4,
+    "german": "die Entscheidung",
+    "english": "decision",
+    "pos": "noun",
+    "level": "B1",
+    "topic": "work",
+    "example": "Das war eine schwierige Entscheidung."
+  },
+  {
+    "id": 5,
+    "german": "vermeiden",
+    "english": "to avoid",
+    "pos": "verb",
+    "level": "B2",
+    "topic": "general",
+    "example": "Wir sollten Fehler vermeiden."
+  },
+  {
+    "id": 6,
+    "german": "die Erfahrung",
+    "english": "experience",
+    "pos": "noun",
+    "level": "B1",
+    "topic": "work",
+    "example": "Ich habe viel Erfahrung."
+  },
+  {
+    "id": 7,
+    "german": "trotzdem",
+    "english": "nevertheless",
+    "pos": "adverb",
+    "level": "B1",
+    "topic": "connectors",
+    "example": "Es regnet, trotzdem gehen wir spazieren."
+  },
+  {
+    "id": 8,
+    "german": "die Voraussetzung",
+    "english": "requirement / prerequisite",
+    "pos": "noun",
+    "level": "B2",
+    "topic": "education",
+    "example": "Deutschkenntnisse sind eine Voraussetzung."
+  },
+  {
+    "id": 9,
+    "german": "sich bewerben",
+    "english": "to apply",
+    "pos": "verb",
+    "level": "B1",
+    "topic": "work",
+    "example": "Ich bewerbe mich um eine Stelle."
+  },
+  {
+    "id": 10,
+    "german": "zuverlässig",
+    "english": "reliable",
+    "pos": "adjective",
+    "level": "B2",
+    "topic": "personality",
+    "example": "Sie ist sehr zuverlässig."
+  },
+  {
+    "id": 11,
+    "german": "der Bahnhof",
+    "english": "train station",
+    "pos": "noun",
+    "level": "A1",
+    "topic": "travel",
+    "example": "Der Bahnhof ist in der Nähe."
+  },
+  {
+    "id": 12,
+    "german": "kaufen",
+    "english": "to buy",
+    "pos": "verb",
+    "level": "A1",
+    "topic": "shopping",
+    "example": "Ich kaufe Brot."
+  }
+]
