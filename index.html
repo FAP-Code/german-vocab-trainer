@@ -2,277 +2,235 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>German Vocabulary Trainer</title>
   <style>
-    :root {
-      --bg: #111827;
-      --card: #1f2937;
-      --text: #f9fafb;
-      --muted: #9ca3af;
-      --accent: #60a5fa;
-      --good: #22c55e;
-      --bad: #ef4444;
-      --btn: #374151;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #1e3a8a, var(--bg));
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    main {
-      width: min(760px, 100%);
-      background: rgba(31, 41, 55, 0.92);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 24px;
-      padding: 28px;
-      box-shadow: 0 30px 80px rgba(0,0,0,0.35);
-    }
-    h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); }
-    .subtitle { color: var(--muted); margin-top: 0; }
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-      margin: 24px 0;
-    }
-    select, button {
-      border: 0;
-      border-radius: 14px;
-      padding: 14px;
-      font-size: 16px;
-    }
-    select {
-      background: #111827;
-      color: var(--text);
-      border: 1px solid rgba(255,255,255,0.12);
-    }
-    .word-card {
-      background: rgba(17, 24, 39, 0.75);
-      border-radius: 20px;
-      padding: 26px;
-      margin: 20px 0;
-    }
-    #word { font-size: clamp(32px, 7vw, 56px); margin: 0; }
-    #meta, #example, #status { color: var(--muted); }
-    .choices {
-      display: grid;
-      gap: 12px;
-      margin-top: 18px;
-    }
-    .choices button {
-      background: var(--btn);
-      color: var(--text);
-      cursor: pointer;
-      text-align: left;
-      transition: transform .1s, background .15s;
-    }
-    .choices button:hover { transform: translateY(-1px); background: #4b5563; }
-    .choices button.correct { background: var(--good); color: #052e16; }
-    .choices button.wrong { background: var(--bad); color: #450a0a; }
-    .score {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      color: var(--muted);
-      margin-top: 18px;
-    }
-    .actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 18px;
-    }
-    .actions button {
-      background: var(--accent);
-      color: #082f49;
-      font-weight: 700;
-      cursor: pointer;
-      width: auto;
-    }
+    :root { --bg:#f7f7fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif; background:var(--bg); color:var(--ink); margin:0; }
+    main { max-width: 850px; margin: 0 auto; padding: 22px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
+    h1 { margin:0 0 8px; font-size: clamp(28px, 5vw, 44px); }
+    .sub { color:var(--muted); margin-top:0; }
+    .controls { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:10px; margin:18px 0; }
+    select, button { font:inherit; }
+    select { width:100%; padding:10px; border-radius:12px; border:1px solid var(--line); background:white; }
+    .question { margin-top:18px; padding:22px; border-radius:16px; border:1px dashed #cbd5e1; background:#fafafa; }
+    #prompt { font-size: clamp(24px, 4vw, 36px); font-weight:800; margin:0 0 8px; }
+    #hint, #example, #exampleEn { color:var(--muted); margin:6px 0; }
+    #choices { display:grid; gap:10px; margin-top:16px; }
+    button.choice { text-align:left; padding:14px 16px; border-radius:14px; border:1px solid var(--line); background:white; cursor:pointer; }
+    button.choice:hover { transform: translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.08); }
+    button.correct { background:#dcfce7; border-color:#86efac; }
+    button.wrong { background:#fee2e2; border-color:#fca5a5; }
+    .stats { display:flex; flex-wrap:wrap; gap:12px; margin-top:16px; color:var(--muted); }
+    .pill { background:#f3f4f6; border-radius:999px; padding:8px 12px; }
+    .result { font-weight:700; min-height:28px; margin-top:12px; }
+    .small { font-size: 13px; color:var(--muted); }
+    .next { margin-top: 10px; padding:12px 16px; border:0; border-radius:12px; background:#111827; color:white; cursor:pointer; display:none; }
   </style>
 </head>
 <body>
-  <main>
+<main>
+  <div class="card">
     <h1>German Vocabulary Trainer</h1>
-    <p class="subtitle">Multiple-choice German practice. Works online and can be installed as a simple web app.</p>
+    <p class="sub">Multiple choice drills for vocabulary, sentences, noun articles, and noun plurals.</p>
 
-    <section class="controls">
-      <select id="level">
-        <option value="all">All levels</option>
-        <option value="A1">A1</option>
-        <option value="A2">A2</option>
-        <option value="B1">B1</option>
-        <option value="B2">B2</option>
-      </select>
+    <div class="controls">
+      <label>Mode
+        <select id="mode">
+          <option value="de-en">German → English</option>
+          <option value="en-de">English → German</option>
+          <option value="article">Article drill: der / die / das</option>
+          <option value="plural">Plural drill</option>
+          <option value="sentence">Sentence / phrase translation</option>
+          <option value="example">Example sentence translation</option>
+        </select>
+      </label>
+      <label>Level
+        <select id="level">
+          <option value="all">All levels</option>
+          <option>A1</option><option>A2</option><option>B1</option><option>B2</option>
+        </select>
+      </label>
+      <label>Type
+        <select id="pos">
+          <option value="all">All types</option>
+          <option value="noun">Nouns</option>
+          <option value="verb">Verbs</option>
+          <option value="adjective">Adjectives</option>
+          <option value="adverb">Adverbs</option>
+          <option value="phrase">Phrases</option>
+          <option value="sentence">Sentences</option>
+        </select>
+      </label>
+      <label>Topic
+        <select id="topic"><option value="all">All topics</option></select>
+      </label>
+    </div>
 
-      <select id="pos">
-        <option value="all">All word types</option>
-        <option value="noun">Nouns</option>
-        <option value="verb">Verbs</option>
-        <option value="adjective">Adjectives</option>
-        <option value="adverb">Adverbs</option>
-        <option value="phrase">Phrases</option>
-      </select>
-
-      <select id="direction">
-        <option value="de-en">German → English</option>
-        <option value="en-de">English → German</option>
-      </select>
-    </section>
-
-    <section class="word-card">
-      <p id="meta"></p>
-      <h2 id="word">Loading...</h2>
+    <div class="question">
+      <p id="prompt">Loading...</p>
+      <p id="hint"></p>
       <p id="example"></p>
-      <div id="choices" class="choices"></div>
-      <p id="status"></p>
+      <p id="exampleEn"></p>
+      <div id="choices"></div>
+      <button id="next" class="next">Next</button>
+      <p id="result" class="result"></p>
+    </div>
 
-      <div class="actions">
-        <button onclick="nextQuestion()">Skip</button>
-        <button onclick="resetScore()">Reset score</button>
-      </div>
-    </section>
+    <div class="stats">
+      <span class="pill">Score: <b id="score">0</b>/<b id="total">0</b></span>
+      <span class="pill">Streak: <b id="streak">0</b></span>
+      <span class="pill">Words loaded: <b id="count">0</b></span>
+    </div>
 
-    <section class="score">
-      <span>Score: <strong id="score">0</strong> / <strong id="total">0</strong></span>
-      <span>Best streak: <strong id="best">0</strong></span>
-      <span>Current streak: <strong id="streak">0</strong></span>
-    </section>
-  </main>
+    <p class="small">Tip: Article and plural drills use noun entries only. Sentence modes use phrase/sentence/example fields.</p>
+  </div>
+</main>
 
-  <script>
-    let words = [];
-    let current = null;
-    let locked = false;
-    let score = Number(localStorage.getItem("score") || 0);
-    let total = Number(localStorage.getItem("total") || 0);
-    let streak = Number(localStorage.getItem("streak") || 0);
-    let best = Number(localStorage.getItem("best") || 0);
+<script>
+let words = [];
+let current = null;
+let answer = "";
+let locked = false;
+let score = Number(localStorage.getItem("score") || 0);
+let total = Number(localStorage.getItem("total") || 0);
+let streak = Number(localStorage.getItem("streak") || 0);
 
-    const $ = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
+$("score").textContent = score; $("total").textContent = total; $("streak").textContent = streak;
 
-    async function loadWords() {
-      try {
-        const response = await fetch("words.json");
-        words = await response.json();
-        updateScore();
-        nextQuestion();
-      } catch (error) {
-        $("word").textContent = "Could not load words.json";
-        $("status").textContent = "Make sure words.json is in the same folder as index.html.";
-      }
-    }
+function shuffle(arr){ return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]); }
+function clean(s){ return (s || "").trim(); }
 
-    function filteredWords() {
-      const level = $("level").value;
-      const pos = $("pos").value;
-      return words.filter(w =>
-        (level === "all" || w.level === level) &&
-        (pos === "all" || w.pos === pos)
-      );
-    }
+async function loadWords(){
+  const res = await fetch("words.json");
+  words = await res.json();
+  $("count").textContent = words.length;
+  populateTopics();
+  nextQuestion();
+}
 
-    function shuffle(array) {
-      return [...array].sort(() => Math.random() - 0.5);
-    }
+function populateTopics(){
+  const topics = [...new Set(words.map(w => w.topic).filter(Boolean))].sort();
+  for (const t of topics) {
+    const opt = document.createElement("option");
+    opt.value = t; opt.textContent = t;
+    $("topic").appendChild(opt);
+  }
+}
 
-    function nextQuestion() {
-      locked = false;
-      const pool = filteredWords();
+function filtered(){
+  const level = $("level").value, pos = $("pos").value, topic = $("topic").value, mode = $("mode").value;
+  return words.filter(w => {
+    if(level !== "all" && w.level !== level) return false;
+    if(pos !== "all" && w.pos !== pos) return false;
+    if(topic !== "all" && w.topic !== topic) return false;
+    if(mode === "article") return w.pos === "noun" && w.article && w.base;
+    if(mode === "plural") return w.pos === "noun" && w.plural && w.base;
+    if(mode === "sentence") return ["phrase","sentence"].includes(w.pos);
+    if(mode === "example") return w.example && w.example_en;
+    return true;
+  });
+}
 
-      if (pool.length < 4) {
-        $("word").textContent = "Need at least 4 words for this filter.";
-        $("choices").innerHTML = "";
-        $("example").textContent = "";
-        $("meta").textContent = "";
-        $("status").textContent = "";
-        return;
-      }
+function makeChoices(correct, pool, field, n=4){
+  const wrong = shuffle(pool.map(w => clean(w[field])).filter(x => x && x !== correct));
+  return shuffle([correct, ...[...new Set(wrong)].slice(0, n-1)]);
+}
 
-      current = pool[Math.floor(Math.random() * pool.length)];
-      const direction = $("direction").value;
-      const wrong = shuffle(pool.filter(w => w.id !== current.id)).slice(0, 3);
-      const choices = shuffle([current, ...wrong]);
+function nextQuestion(){
+  locked = false;
+  $("next").style.display = "none";
+  $("result").textContent = "";
+  $("exampleEn").textContent = "";
+  const pool = filtered();
+  if(pool.length < 3){
+    $("prompt").textContent = "Not enough entries for this filter.";
+    $("hint").textContent = "Try another mode, level, type, or topic.";
+    $("choices").innerHTML = "";
+    return;
+  }
+  current = pool[Math.floor(Math.random()*pool.length)];
+  const mode = $("mode").value;
+  let choices = [];
 
-      $("meta").textContent = `${current.level} · ${current.pos} · ${current.topic || "general"}`;
-      $("word").textContent = direction === "de-en" ? current.german : current.english;
-      $("example").textContent = current.example || "";
-      $("status").textContent = "";
-      $("choices").innerHTML = "";
+  if(mode === "article"){
+    answer = current.article;
+    $("prompt").textContent = current.base;
+    $("hint").textContent = "Choose the correct article.";
+    $("example").textContent = current.example ? "Example: " + current.example : "";
+    choices = ["der","die","das"];
+  } else if(mode === "plural"){
+    answer = current.plural;
+    $("prompt").textContent = `${current.article} ${current.base}`;
+    $("hint").textContent = "Choose the plural form.";
+    $("example").textContent = current.english ? "Meaning: " + current.english : "";
+    choices = makeChoices(answer, words.filter(w=>w.pos==="noun" && w.plural), "plural");
+  } else if(mode === "en-de"){
+    answer = current.german;
+    $("prompt").textContent = current.english;
+    $("hint").textContent = "Choose the German translation.";
+    $("example").textContent = current.example ? "Example: " + current.example : "";
+    choices = makeChoices(answer, pool, "german");
+  } else if(mode === "sentence"){
+    answer = current.english;
+    $("prompt").textContent = current.german;
+    $("hint").textContent = "Choose the English translation.";
+    $("example").textContent = current.example ? "Example: " + current.example : "";
+    choices = makeChoices(answer, pool, "english");
+  } else if(mode === "example"){
+    answer = current.example_en;
+    $("prompt").textContent = current.example;
+    $("hint").textContent = "Choose the English translation of the example sentence.";
+    $("example").textContent = current.german ? "Word/phrase: " + current.german : "";
+    choices = makeChoices(answer, pool.filter(w=>w.example_en), "example_en");
+  } else {
+    answer = current.english;
+    $("prompt").textContent = current.german;
+    $("hint").textContent = `${current.level || ""} · ${current.pos || ""} · ${current.topic || ""}`;
+    $("example").textContent = current.example ? "Example: " + current.example : "";
+    choices = makeChoices(answer, pool, "english");
+  }
 
-      choices.forEach(choice => {
-        const btn = document.createElement("button");
-        btn.textContent = direction === "de-en" ? choice.english : choice.german;
-        btn.onclick = () => choose(btn, choice);
-        $("choices").appendChild(btn);
-      });
-    }
+  $("choices").innerHTML = "";
+  for(const c of choices){
+    const btn = document.createElement("button");
+    btn.className = "choice";
+    btn.textContent = c;
+    btn.onclick = () => choose(btn, c);
+    $("choices").appendChild(btn);
+  }
+}
 
-    function choose(button, choice) {
-      if (locked) return;
-      locked = true;
+function choose(btn, choice){
+  if(locked) return;
+  locked = true;
+  total++;
+  const buttons = [...document.querySelectorAll("button.choice")];
+  buttons.forEach(b => { if(b.textContent === answer) b.classList.add("correct"); });
+  if(choice === answer){
+    score++; streak++;
+    btn.classList.add("correct");
+    $("result").textContent = "Correct.";
+  } else {
+    streak = 0;
+    btn.classList.add("wrong");
+    $("result").textContent = "Wrong. Correct answer: " + answer;
+  }
+  if(current.example_en && $("mode").value !== "example"){
+    $("exampleEn").textContent = "Example translation: " + current.example_en;
+  }
+  localStorage.setItem("score", score);
+  localStorage.setItem("total", total);
+  localStorage.setItem("streak", streak);
+  $("score").textContent = score; $("total").textContent = total; $("streak").textContent = streak;
+  $("next").style.display = "inline-block";
+}
 
-      total++;
-
-      if (choice.id === current.id) {
-        score++;
-        streak++;
-        best = Math.max(best, streak);
-        button.classList.add("correct");
-        $("status").textContent = "Correct.";
-      } else {
-        streak = 0;
-        button.classList.add("wrong");
-        $("status").textContent = `Wrong. Correct answer: ${$("direction").value === "de-en" ? current.english : current.german}`;
-        [...$("choices").children].forEach(btn => {
-          if (btn.textContent === ($("direction").value === "de-en" ? current.english : current.german)) {
-            btn.classList.add("correct");
-          }
-        });
-      }
-
-      saveScore();
-      updateScore();
-      setTimeout(nextQuestion, 1200);
-    }
-
-    function saveScore() {
-      localStorage.setItem("score", score);
-      localStorage.setItem("total", total);
-      localStorage.setItem("streak", streak);
-      localStorage.setItem("best", best);
-    }
-
-    function updateScore() {
-      $("score").textContent = score;
-      $("total").textContent = total;
-      $("streak").textContent = streak;
-      $("best").textContent = best;
-    }
-
-    function resetScore() {
-      score = 0;
-      total = 0;
-      streak = 0;
-      best = 0;
-      saveScore();
-      updateScore();
-    }
-
-    $("level").onchange = nextQuestion;
-    $("pos").onchange = nextQuestion;
-    $("direction").onchange = nextQuestion;
-
-    loadWords();
-  </script>
+$("next").onclick = nextQuestion;
+["mode","level","pos","topic"].forEach(id => $(id).onchange = nextQuestion);
+loadWords();
+</script>
 </body>
 </html>
