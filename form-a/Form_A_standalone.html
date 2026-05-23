@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Form A – Registration of Business Name – Sole Proprietorship</title>
+<style>
+/* ============================================================
+   FORM A – Registration of Business Name – Sole Proprietorship
+   Self-contained single-file version
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8.5pt;
+  color: #000;
+  background: #aaa;
+  line-height: 1.3;
+}
+
+/* ── PAGE ── */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 8mm 12mm;
+  background: #fff;
+  margin: 8mm auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 3px 12px rgba(0,0,0,.35);
+  page-break-after: always;
+}
+
+/* ── HEADER ── */
+.form-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 4mm;
+  border-bottom: 2px solid #000;
+  padding-bottom: 2.5mm;
+  margin-bottom: 2.5mm;
+}
+.header-logo { flex-shrink:0; width:26mm; display:flex; align-items:center; justify-content:center; }
+.logo-circle {
+  width:24mm; height:24mm; border-radius:50%;
+  border:2px solid #003399;
+  display:flex; align-items:center; justify-content:center;
+  background:#fff; overflow:hidden;
+}
+.logo-inner { text-align:center; font-size:4.5pt; font-weight:bold; line-height:1.3; color:#003399; padding:1mm; }
+.logo-eagle { font-size:10pt; display:block; margin:0.5mm 0; }
+.logo-orc   { font-size:7.5pt; font-weight:bold; color:#cc0000; letter-spacing:.5pt; }
+
+.header-titles { flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; }
+.act-line   { font-size:8.5pt; font-weight:bold; }
+.form-code  { font-size:16pt; font-weight:bold; letter-spacing:2pt; margin:1mm 0; }
+.form-title { font-size:9.5pt; font-weight:bold; }
+.form-subtitle, .form-subtype { font-size:8pt; }
+.form-subtype { font-weight:bold; }
+
+/* ── INSTRUCTIONS ── */
+.instructions {
+  border:1px solid #000; padding:2mm 3mm; margin-bottom:2.5mm;
+  font-size:7.5pt; line-height:1.6;
+}
+.instr-bold { font-weight:bold; }
+
+/* ── TWO-COLUMN BODY ── */
+.form-body   { display:flex; flex:1; gap:4mm; min-width:0; }
+.form-main   { flex:1; min-width:0; overflow:hidden; }
+.form-sidebar{ width:50mm; flex-shrink:0; display:flex; flex-direction:column; gap:2mm; }
+
+/* ── SECTIONS ── */
+.section { margin-bottom:3mm; }
+.section-marker-row { display:flex; align-items:baseline; gap:2mm; margin-bottom:1mm; }
+.section-marker { font-weight:bold; font-size:9pt; white-space:nowrap; min-width:7mm; }
+.section-title  { font-weight:bold; font-size:9pt; text-transform:uppercase; flex:1; }
+.subsection-title {
+  font-weight:bold; font-size:8.5pt; margin-bottom:1.5mm;
+  padding-left:9mm; text-decoration:underline;
+}
+
+/* ── FIELD ROWS ── */
+.address-field  { margin-bottom:1.5mm; padding-left:9mm; }
+.field-label    { font-size:7.5pt; margin-bottom:.5mm; line-height:1.4; }
+.field-label small { font-size:6.5pt; }
+
+.field-row-inline {
+  display:flex; align-items:center; flex-wrap:wrap;
+  gap:3mm; margin-bottom:1.5mm; padding-left:9mm; font-size:8pt;
+}
+.field-label-inline { font-size:8pt; }
+
+/* ── CHARACTER BOXES ── */
+.char-boxes-row {
+  display:flex; width:100%;
+  border:1px solid #000; height:7mm; overflow:hidden;
+}
+.char-box {
+  flex:1; border-right:1px solid #000; height:100%; min-width:3px;
+}
+.char-box:last-child { border-right:none; }
+
+/* shorter row (ISIC, phones) */
+.char-boxes-sm {
+  display:flex; width:100%;
+  border:1px solid #000; height:7mm; overflow:hidden;
+}
+/* inside an isic-row (flex parent) grow to fill */
+.isic-row .char-boxes-sm { flex:1; width:auto; }
+
+/* ── CHECKBOXES / RADIO ── */
+.check-box {
+  display:inline-block; width:3.5mm; height:3.5mm; min-width:3.5mm;
+  border:1px solid #000; vertical-align:middle; flex-shrink:0;
+}
+.check-circle {
+  display:inline-block; width:3.5mm; height:3.5mm; min-width:3.5mm;
+  border:1px solid #000; border-radius:50%; vertical-align:middle; flex-shrink:0;
+}
+.check-item { display:inline-flex; align-items:center; gap:1mm; font-size:8pt; white-space:nowrap; }
+
+/* ── SECTOR GRID (4 columns) ── */
+.sector-grid {
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:1.5mm 2mm;
+  width:100%;
+  padding-left:9mm;
+  margin-bottom:2mm;
+  font-size:7.5pt;
+}
+.sector-item { display:flex; align-items:center; gap:1.5mm; line-height:1.2; }
+
+.others-input-row { padding-left:9mm; margin-bottom:1.5mm; }
+.others-label     { font-size:7.5pt; margin-bottom:.5mm; }
+
+/* ── ISIC ROWS ── */
+.isic-desc-text { font-size:7.5pt; padding-left:9mm; margin-bottom:1.5mm; line-height:1.4; }
+.isic-row {
+  display:flex; align-items:center; gap:2mm;
+  padding-left:9mm; margin-bottom:1.5mm; width:100%;
+}
+.isic-label { font-size:8pt; white-space:nowrap; min-width:22mm; flex-shrink:0; }
+.isic-alt-text { font-size:7.5pt; padding-left:9mm; margin-bottom:1mm; line-height:1.4; }
+
+/* ── DATE BOXES ── */
+.date-field { display:inline-flex; align-items:center; gap:.5mm; }
+.date-box {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:6mm; height:6mm; border:1px solid #000;
+  font-size:7pt; font-weight:bold; color:#555;
+}
+.date-gap { width:2mm; }
+
+/* ── TWO-COL CONTACT ── */
+.two-col-contact {
+  display:grid; grid-template-columns:1fr 1fr;
+  column-gap:4mm; padding-left:9mm; width:100%;
+}
+.addr-cell { margin-bottom:1.5mm; }
+.addr-cell .field-label { font-size:7.5pt; margin-bottom:.5mm; }
+
+/* ── DECLARATION ── */
+.declaration-block { border:1px solid #000; padding:3mm; }
+.decl-header {
+  display:flex; justify-content:space-between;
+  align-items:flex-start; gap:4mm; margin-bottom:2.5mm;
+}
+.decl-marker-title { display:flex; align-items:baseline; gap:2mm; }
+.decl-right-text {
+  font-size:8pt; font-style:italic; font-weight:bold;
+  text-align:right; max-width:65mm; line-height:1.4;
+}
+.decl-name-line {
+  font-size:8pt; padding-left:9mm; margin-bottom:.5mm;
+  display:flex; align-items:flex-end; gap:2mm;
+}
+.decl-name-underline { flex:1; border-bottom:1px solid #000; height:1px; margin-bottom:1px; }
+.decl-name-label { font-size:7pt; font-style:italic; text-align:center; padding-left:9mm; margin-bottom:3mm; }
+
+.sig-row  { display:flex; gap:10mm; margin-bottom:3mm; padding-left:9mm; }
+.sig-block{ flex:1; text-align:center; }
+.sig-line { border-bottom:1px solid #000; height:10mm; margin-bottom:1mm; }
+.sig-label{ font-size:7.5pt; }
+
+.fill-note { font-size:8pt; font-weight:bold; padding-left:9mm; margin:2mm 0 1.5mm; text-decoration:underline; }
+.nb-para   { font-size:7.5pt; padding-left:9mm; line-height:2; margin-bottom:2mm; }
+
+/* ── SIDEBAR NOTES ── */
+.note {
+  border:1px solid #000; padding:2mm 2.5mm;
+  font-size:7pt; line-height:1.5; background:#fff;
+}
+.note p { margin-bottom:1.5mm; }
+.note p:last-child { margin-bottom:0; }
+.note-spacer { flex:1; }
+
+.thumb-box {
+  border:1px solid #000; height:30mm; width:100%;
+  display:flex; align-items:center; justify-content:center;
+}
+.thumb-label { font-size:8.5pt; font-weight:bold; }
+
+/* ── FOOTER ── */
+.page-footer {
+  text-align:center; font-size:8pt;
+  border-top:1px solid #000; padding-top:2.5mm; margin-top:auto;
+}
+
+/* ── PAGE 4 ── */
+.office-use-box { border:1px solid #000; padding:3mm; margin-bottom:3mm; }
+.office-use-header { display:flex; align-items:baseline; gap:2mm; margin-bottom:2mm; }
+.office-title { font-weight:bold; font-size:9pt; text-transform:uppercase; }
+.sig-dotted-line { border-bottom:1px dotted #000; height:7mm; margin-bottom:1mm; width:100%; }
+.full-dotted-divider { text-align:center; font-size:7pt; margin:3mm 0; overflow:hidden; white-space:nowrap; letter-spacing:1pt; }
+
+.important-section { margin-bottom:3mm; }
+.info-heading    { font-size:10pt; font-weight:bold; margin-bottom:.5mm; }
+.info-subheading { font-size:9pt; font-weight:bold; text-decoration:underline; margin-bottom:1.5mm; }
+
+.msme-table { width:100%; border-collapse:collapse; font-size:8pt; margin-bottom:1.5mm; }
+.msme-table th, .msme-table td { border:1px solid #000; padding:1.5mm 2mm; }
+.msme-table th { background:#d8d8d8; font-weight:bold; text-align:center; }
+.msme-table td:first-child { font-weight:bold; }
+.table-footnote { font-size:7pt; line-height:1.4; margin-bottom:2mm; }
+
+.notice-block   { margin-bottom:3mm; }
+.notice-heading { font-size:9pt; font-weight:bold; text-decoration:underline; margin-bottom:1mm; }
+.notice-text    { font-size:8pt; line-height:1.5; }
+.notice-text + .notice-text { margin-top:1mm; }
+
+.checklist-table { width:100%; border-collapse:collapse; font-size:8pt; margin-top:1mm; }
+.checklist-table td { border:1px solid #000; padding:1.5mm 2mm; vertical-align:middle; }
+.checklist-table td:first-child { width:8mm; text-align:center; }
+
+/* ── HELPERS ── */
+.mt-1{margin-top:1mm} .mt-2{margin-top:2mm} .mt-3{margin-top:3mm}
+.mb-1{margin-bottom:1mm} .mb-2{margin-bottom:2mm}
+.bold{font-weight:bold}
+
+/* ── PRINT ── */
+@media print {
+  body { background:#fff; margin:0; padding:0; }
+  .page {
+    margin:0; box-shadow:none;
+    page-break-after:always;
+    width:210mm; height:297mm;
+    padding:8mm 12mm; overflow:hidden;
+  }
+  .page:last-child { page-break-after:auto; }
+  @page { size:A4 portrait; margin:0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════  PAGE 1  ═══════════════════ -->
+<div class="page" id="page-1">
+
+  <div class="form-header">
+    <div class="header-logo">
+      <div class="logo-circle">
+        <div class="logo-inner">
+          <span class="logo-orc">ORC</span>
+          <span class="logo-eagle">🦅</span>
+          <div>OFFICE OF THE</div>
+          <div>REGISTRAR</div>
+          <div>OF COMPANIES</div>
+        </div>
+      </div>
+    </div>
+    <div class="header-titles">
+      <div class="act-line">REGISTRATION OF BUSINESS NAMES ACT, 1962 (ACT 151)</div>
+      <div class="form-code">FORM A</div>
+      <div class="form-title">REGISTRATION OF BUSINESS NAME – SOLE PROPRIETORSHIP</div>
+      <div class="form-subtitle">(Sections 2)</div>
+      <div class="form-subtype">SOLE PROPRIETORSHIP</div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <div class="instr-bold">FILL ALL FORMS IN BLOCK LETTERS, AND LEAVE SPACES IN BETWEEN WORDS</div>
+    <div class="instr-bold">PLEASE WRITE ALL WORDS WITH NO ABBREVIATIONS</div>
+    <div class="instr-bold">ALL FIELDS MARKED WITH AN ASTERISK (*) INDICATES A MANDATORY FIELD</div>
+    <div>A fee is payable on presentation of this form. Please see the fees on our website www.orc.gov.gh</div>
+    <div>Read the instructions before completing the Form. Incomplete applications or invalid data may delay the registration process</div>
+  </div>
+
+  <div class="form-body">
+    <div class="form-main">
+
+      <!-- A: Business Name -->
+      <div class="section">
+        <div class="section-marker-row">
+          <span class="section-marker">(A)</span>
+          <span class="section-title">Business Name*</span>
+        </div>
+        <div class="char-boxes-row" id="biz1"></div>
+        <div class="char-boxes-row mt-1" id="biz2"></div>
+      </div>
+
+      <!-- B: Sector grid -->
+      <div class="section">
+        <div class="section-marker-row">
+          <span class="section-marker">(B)</span>
+          <span class="section-title">Nature of Business/Sector(s)*</span>
+        </div>
+        <div class="sector-grid">
+          <div class="sector-item"><span class="check-box"></span>Legal</div>
+          <div class="sector-item"><span class="check-box"></span>Estate/Housing</div>
+          <div class="sector-item"><span class="check-box"></span>Media</div>
+          <div class="sector-item"><span class="check-box"></span>Transport/Aerospace</div>
+          <div class="sector-item"><span class="check-box"></span>Utilities</div>
+          <div class="sector-item"><span class="check-box"></span>Education</div>
+          <div class="sector-item"><span class="check-box"></span>Shipping &amp; Port</div>
+          <div class="sector-item"><span class="check-box"></span>Fashion/Beautification</div>
+          <div class="sector-item"><span class="check-box"></span>Tourism</div>
+          <div class="sector-item"><span class="check-box"></span>Quarry / Mining</div>
+          <div class="sector-item"><span class="check-box"></span>Hospitality</div>
+          <div class="sector-item"><span class="check-box"></span>Health Care</div>
+          <div class="sector-item"><span class="check-box"></span>Insurance</div>
+          <div class="sector-item"><span class="check-box"></span>Entertainment</div>
+          <div class="sector-item"><span class="check-box"></span>Refinery of Minerals</div>
+          <div class="sector-item"><span class="check-box"></span>Others <em>(Please Specify)</em></div>
+          <div class="sector-item"><span class="check-box"></span>Agriculture</div>
+          <div class="sector-item"><span class="check-box"></span>Food Industry</div>
+          <div class="sector-item"><span class="check-box"></span>Securities/Brokers</div>
+          <div class="sector-item"><span class="check-box"></span>Commerce/ Trading</div>
+          <div class="sector-item"><span class="check-box"></span>Oil and Gas</div>
+          <div class="sector-item"><span class="check-box"></span>Manufacturing</div>
+          <div class="sector-item"><span class="check-box"></span>Banking and Finance</div>
+          <div class="sector-item"><span class="check-box"></span>Sanitation</div>
+          <div class="sector-item"><span class="check-box"></span>Construction</div>
+          <div class="sector-item"><span class="check-box"></span>Pharmaceutical</div>
+          <div class="sector-item"></div><div class="sector-item"></div>
+          <div class="sector-item"><span class="check-box"></span>Telecom/ICT</div>
+          <div class="sector-item"><span class="check-box"></span>Security</div>
+          <div class="sector-item"></div><div class="sector-item"></div>
+        </div>
+        <div class="others-input-row">
+          <div class="others-label">If Others, please specify:</div>
+          <div class="char-boxes-row" id="bOthers"></div>
+        </div>
+      </div>
+
+      <!-- C: ISIC -->
+      <div class="section">
+        <div class="section-marker-row">
+          <span class="section-marker">(C)</span>
+          <span class="section-title">Principal Business Activities*</span>
+        </div>
+        <div class="isic-desc-text">Select the International Standard Industrial Classification (ISIC) code number(s) for the principal activity and other activities</div>
+        <div class="isic-row"><span class="isic-label">ISIC code 1</span><div class="char-boxes-sm" id="isic1"></div></div>
+        <div class="isic-row"><span class="isic-label">ISIC code 2</span><div class="char-boxes-sm" id="isic2"></div></div>
+        <div class="isic-row"><span class="isic-label">ISIC code 3</span><div class="char-boxes-sm" id="isic3"></div></div>
+        <div class="isic-alt-text">If you cannot determine a code, please give a brief description of the company's business activities below</div>
+        <div class="address-field"><div class="char-boxes-row" id="isicDesc"></div></div>
+        <div class="field-row-inline mt-1">
+          <span class="field-label-inline">Date of Commencement</span>
+          <div class="date-field">
+            <div class="date-box">D</div><div class="date-box">D</div><div class="date-gap"></div>
+            <div class="date-box">M</div><div class="date-box">M</div><div class="date-gap"></div>
+            <div class="date-box">Y</div><div class="date-box">Y</div><div class="date-box">Y</div><div class="date-box">Y</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D: Registered Office Address -->
+      <div class="section">
+        <div class="section-marker-row">
+          <span class="section-marker">(D)</span>
+          <span class="section-title">Business Address Information</span>
+        </div>
+        <div class="subsection-title">Registered Office Address</div>
+        <div class="address-field"><div class="field-label">Digital Address*</div><div class="char-boxes-row" id="dDigital"></div></div>
+        <div class="address-field"><div class="field-label">House/Building/Flat* <small>(Name or House No.)/LMB</small></div><div class="char-boxes-row" id="dHouse"></div></div>
+        <div class="address-field"><div class="field-label">Street Name*</div><div class="char-boxes-row" id="dStreet"></div></div>
+        <div class="address-field"><div class="field-label">City*</div><div class="char-boxes-row" id="dCity"></div></div>
+      </div>
+
+    </div><!-- /form-main -->
+
+    <div class="form-sidebar">
+      <div class="note">
+        <p>Name should not be duplicated, similar, misleading or undesirable.</p>
+        <p>The Registrar of Business Names shall have the final approval regarding the name which is eventually submitted for registration. Section 2, of Business Names Act, 1962 (ACT 151)</p>
+        <p>A list of registered names can be found on our portal www.rgdeservices.com</p>
+      </div>
+      <div class="note">
+        <p>Choose your sector by ticking the box next to it. Specify sector(s).</p>
+        <p>If your sector is not listed, write your sector in the space provided for "others".</p>
+      </div>
+      <div class="note">
+        <p>ISIC or classification code is a standard classification for economic or business activities so that establishments could be classified based on the activity they carry out.</p>
+        <p>A detailed list of ISIC or Classification Codes can be found on our website at www.orc.gov.gh</p>
+      </div>
+      <div class="note">
+        <p>Every proprietor must have a Business Address, Principal Place of Business. The Registrar of Business Names may send correspondence.</p>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">1 of 4</div>
+</div>
+
+<!-- ═══════════════════  PAGE 2  ═══════════════════ -->
+<div class="page" id="page-2">
+  <div class="form-body">
+    <div class="form-main">
+
+      <!-- D cont. -->
+      <div class="address-field" style="padding-left:9mm;"><div class="field-label">District*</div><div class="char-boxes-row" id="dDistrict"></div></div>
+      <div class="address-field" style="padding-left:9mm;"><div class="field-label">Region*</div><div class="char-boxes-row" id="dRegion"></div></div>
+
+      <div class="field-row-inline mt-2">
+        <span class="field-label-inline bold">Ownership of Premises</span>
+        <span class="check-item"><span class="check-box"></span>Rented</span>
+        <span class="check-item"><span class="check-box"></span>Owner Occupied</span>
+        <span class="check-item"><span class="check-box"></span>Free Use</span>
+      </div>
+      <div class="field-row-inline">
+        <span class="field-label-inline">If Owner Occupied is it part rented?</span>
+        <span class="check-item"><span class="check-box"></span>Yes</span>
+        <span class="check-item"><span class="check-box"></span>No</span>
+      </div>
+      <div style="padding-left:9mm;font-size:7.5pt;margin-bottom:1mm;">If Yes provide details of Landlord</div>
+      <div class="address-field" style="padding-left:9mm;"><div class="field-label">Landlords Name</div><div class="char-boxes-row" id="dLandlord"></div></div>
+
+      <!-- E: Principal Place -->
+      <div class="section mt-2">
+        <div class="section-marker-row"><span class="section-marker">(E)</span><span class="section-title">Principal Place of Business</span></div>
+        <div style="padding-left:9mm;font-size:8pt;margin-bottom:1mm;">Is the Principal place of Business the same as the Registered Office Address?</div>
+        <div class="field-row-inline">
+          <span class="check-item"><span class="check-box"></span>If Yes (Tick the box and proceed with other Place of Business)</span>
+          <span class="check-item"><span class="check-box"></span>If No (Provide Details)</span>
+        </div>
+        <div class="address-field"><div class="field-label">Digital Address*</div><div class="char-boxes-row" id="eDigital"></div></div>
+        <div class="address-field"><div class="field-label">House/Building/Flat <small>(Name or House No.)/LMB*</small></div><div class="char-boxes-row" id="eHouse"></div></div>
+        <div class="address-field"><div class="field-label">Street Name*</div><div class="char-boxes-row" id="eStreet"></div></div>
+        <div class="address-field"><div class="field-label">City*</div><div class="char-boxes-row" id="eCity"></div></div>
+        <div class="address-field"><div class="field-label">District*</div><div class="char-boxes-row" id="eDistrict"></div></div>
+        <div class="address-field"><div class="field-label">Region*</div><div class="char-boxes-row" id="eRegion"></div></div>
+      </div>
+
+      <!-- F: Other Place -->
+      <div class="section">
+        <div class="section-marker-row"><span class="section-marker">(F)</span><span class="section-title">Other Place of Business</span></div>
+        <div class="address-field"><div class="field-label">Digital Address</div><div class="char-boxes-row" id="fDigital"></div></div>
+        <div class="address-field"><div class="field-label">House/Building/Flat <small>(Name or House No.)/LMB</small></div><div class="char-boxes-row" id="fHouse"></div></div>
+        <div class="address-field"><div class="field-label">Street Name</div><div class="char-boxes-row" id="fStreet"></div></div>
+        <div class="address-field"><div class="field-label">City</div><div class="char-boxes-row" id="fCity"></div></div>
+        <div class="address-field"><div class="field-label">District</div><div class="char-boxes-row" id="fDistrict"></div></div>
+        <div class="address-field"><div class="field-label">Region</div><div class="char-boxes-row" id="fRegion"></div></div>
+      </div>
+
+      <!-- G: Postal Address -->
+      <div class="section">
+        <div class="section-marker-row"><span class="section-marker">(G)</span><span class="section-title">Postal Address</span></div>
+        <div class="address-field"><div class="field-label">C/O</div><div class="char-boxes-row" id="gCo"></div></div>
+        <div class="field-row-inline">
+          <span class="field-label-inline">Type*</span>
+          <span class="check-item"><span class="check-circle"></span>P O BOX</span>
+          <span class="check-item"><span class="check-circle"></span>PMB</span>
+          <span class="check-item"><span class="check-circle"></span>DTD</span>
+        </div>
+        <div class="address-field"><div class="field-label">Number*</div><div class="char-boxes-row" id="gNumber"></div></div>
+        <div class="address-field"><div class="field-label">Town*</div><div class="char-boxes-row" id="gTown"></div></div>
+        <div class="address-field"><div class="field-label">Region*</div><div class="char-boxes-row" id="gRegion"></div></div>
+      </div>
+
+      <!-- H: Contact -->
+      <div class="section">
+        <div class="section-marker-row"><span class="section-marker">(H)</span><span class="section-title">Contact</span></div>
+        <div class="two-col-contact">
+          <div class="addr-cell"><div class="field-label">Phone No 1*</div><div class="char-boxes-sm" id="hPhone1"></div></div>
+          <div class="addr-cell"><div class="field-label">Phone No 2</div><div class="char-boxes-sm" id="hPhone2"></div></div>
+          <div class="addr-cell"><div class="field-label">Mobile No 1*</div><div class="char-boxes-sm" id="hMobile1"></div></div>
+          <div class="addr-cell"><div class="field-label">Mobile No 2</div><div class="char-boxes-sm" id="hMobile2"></div></div>
+          <div class="addr-cell"><div class="field-label">Fax</div><div class="char-boxes-sm" id="hFax"></div></div>
+          <div class="addr-cell"></div>
+        </div>
+        <div class="address-field"><div class="field-label">Email Address*</div><div class="char-boxes-row" id="hEmail"></div></div>
+        <div class="address-field"><div class="field-label">Website</div><div class="char-boxes-row" id="hWebsite"></div></div>
+      </div>
+
+      <!-- I: Proprietor -->
+      <div class="section">
+        <div class="section-marker-row"><span class="section-marker">(I)</span><span class="section-title">Proprietor / Proprietress</span></div>
+        <div class="field-row-inline">
+          <span class="field-label-inline">Title</span>
+          <span class="check-item"><span class="check-box"></span>Mr</span>
+          <span class="check-item"><span class="check-box"></span>Mrs</span>
+          <span class="check-item"><span class="check-box"></span>Miss</span>
+          <span class="check-item"><span class="check-box"></span>Ms</span>
+          <span class="check-item"><span class="check-box"></span>Dr</span>
+        </div>
+        <div class="address-field"><div class="field-label">First Name*</div><div class="char-boxes-row" id="iFirst"></div></div>
+        <div class="address-field"><div class="field-label">Middle Name</div><div class="char-boxes-row" id="iMiddle"></div></div>
+        <div class="address-field"><div class="field-label">Last Name*</div><div class="char-boxes-row" id="iLast"></div></div>
+        <div class="address-field"><div class="field-label">Any Former Name</div><div class="char-boxes-row" id="iFormer"></div></div>
+        <div class="field-row-inline">
+          <span class="field-label-inline">Gender*</span>
+          <span class="check-item"><span class="check-box"></span>Male</span>
+          <span class="check-item"><span class="check-box"></span>Female</span>
+        </div>
+        <div class="field-row-inline">
+          <span class="field-label-inline">Date of Birth*</span>
+          <div class="date-field">
+            <div class="date-box">D</div><div class="date-box">D</div><div class="date-gap"></div>
+            <div class="date-box">M</div><div class="date-box">M</div><div class="date-gap"></div>
+            <div class="date-box">Y</div><div class="date-box">Y</div><div class="date-box">Y</div><div class="date-box">Y</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /form-main -->
+
+    <div class="form-sidebar">
+      <div class="note" style="margin-top:22mm;"><p>Obtain a digital address by downloading the Ghana Post GPS app onto any smart phone.</p></div>
+      <div class="note" style="margin-top:30mm;"><p>Businesses that have multiple operational locations must complete this section.</p><p>Supplementary sheets can be found on our website www.orc.gov.gh</p></div>
+      <div class="note" style="margin-top:8mm;"><p>Please tick either Post Office Box (P O BOX), Private Mail Bag (PMB) or Door to Door (DTD) and provide details as applicable.</p></div>
+      <div class="note" style="margin-top:6mm;"><p>Applicants are to provide at least, one mobile phone number and an email address.</p><p>This is to assist the Registrar of Companies send out notices.</p></div>
+    </div>
+  </div>
+  <div class="page-footer">2 of 4</div>
+</div>
+
+<!-- ═══════════════════  PAGE 3  ═══════════════════ -->
+<div class="page" id="page-3">
+  <div class="form-body">
+    <div class="form-main">
+
+      <!-- I cont. -->
+      <div class="address-field" style="padding-left:9mm;"><div class="field-label">Nationality*</div><div class="char-boxes-row" id="iNationality"></div></div>
+      <div class="address-field" style="padding-left:9mm;"><div class="field-label">Occupation*</div><div class="char-boxes-row" id="iOccupation"></div></div>
+      <div class="two-col-contact">
+        <div class="addr-cell"><div class="field-label">Mobile No 1*</div><div class="char-boxes-sm" id="iMobile1"></div></div>
+        <div class="addr-cell"><div class="field-label">Mobile No 2</div><div class="char-boxes-sm" id="iMobile2"></div></div>
+        <div class="addr-cell"><div class="field-label">Fax</div><div class="char-boxes-sm" id="iFax"></div></div>
+        <div class="addr-cell"></div>
+      </div>
+      <div class="address-field" style="padding-left:9mm;"><div class="field-label">Email Address*</div><div class="char-boxes-row" id="iEmail"></div></div>
+      <div class="address-field" style="padding-left:9mm;"><div class="field-label">TIN*</div><div class="char-boxes-row" id="iTin"></div></div>
+      <div class="address-field" style="padding-left:9mm;"><div class="field-label">Ghana Card (National Identity Card)*</div><div class="char-boxes-row" id="iGhCard"></div></div>
+      <div class="field-row-inline">
+        <span class="check-item"><span class="check-box"></span>GHA Without TIN</span>
+        <span style="font-size:7.5pt;">Fill the GRA TIN Form attached</span>
+      </div>
+
+      <!-- J: Residential Address -->
+      <div class="section mt-2">
+        <div class="section-marker-row"><span class="section-marker">(J)</span><span class="section-title">Residential Address of Proprietor or Proprietress</span></div>
+        <div class="address-field"><div class="field-label">Digital Address*</div><div class="char-boxes-row" id="jDigital"></div></div>
+        <div class="address-field"><div class="field-label">House/Building/Flat* <small>(Name or House No.)/LMB</small></div><div class="char-boxes-row" id="jHouse"></div></div>
+        <div class="address-field"><div class="field-label">Street Name*</div><div class="char-boxes-row" id="jStreet"></div></div>
+        <div class="address-field"><div class="field-label">City*</div><div class="char-boxes-row" id="jCity"></div></div>
+        <div class="address-field"><div class="field-label">District*</div><div class="char-boxes-row" id="jDistrict"></div></div>
+        <div class="address-field"><div class="field-label">Region*</div><div class="char-boxes-row" id="jRegion"></div></div>
+        <div class="address-field"><div class="field-label">Country*</div><div class="char-boxes-row" id="jCountry"></div></div>
+      </div>
+
+      <!-- K: MSME -->
+      <div class="section">
+        <div class="section-marker-row"><span class="section-marker">(K)</span><span class="section-title">MSME Details</span></div>
+        <div class="address-field"><div class="field-label">Revenue Envisaged*</div><div class="char-boxes-row" id="kRevenue"></div></div>
+        <div class="address-field"><div class="field-label">No. of Employees Envisaged*</div><div class="char-boxes-row" id="kEmployees"></div></div>
+      </div>
+
+      <!-- L: BOP -->
+      <div class="section">
+        <div class="section-marker-row"><span class="section-marker">(L)</span><span class="section-title">Business Operating Permit (BOP) Request</span></div>
+        <div class="field-row-inline">
+          <span class="check-item"><span class="check-box"></span>Apply for BOP Now</span>
+          <span class="check-item"><span class="check-box"></span>Apply for BOP Later</span>
+          <span class="check-item"><span class="check-box"></span>Already have a BOP</span>
+        </div>
+        <div class="address-field"><div class="field-label">Provide BOP Reference No.</div><div class="char-boxes-row" id="lBop"></div></div>
+      </div>
+
+      <!-- M: Declaration -->
+      <div class="section">
+        <div class="declaration-block">
+          <div class="decl-header">
+            <div class="decl-marker-title">
+              <span class="section-marker">(M)</span>
+              <span class="section-title">DECLARATION</span>
+            </div>
+            <div class="decl-right-text">Declare that the information given above is<br>correct and complete.</div>
+          </div>
+          <div class="decl-name-line">I,&nbsp;<span class="decl-name-underline"></span></div>
+          <div class="decl-name-label">(Full name of Applicant)</div>
+          <div class="sig-row">
+            <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Date (d d / m m / y y y y)</div></div>
+            <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Signature</div></div>
+          </div>
+          <div class="fill-note">PLEASE FILL WHERE APPLICANT CANNOT READ OR WRITE</div>
+          <div class="nb-para">
+            N/B: I……......................................……………………………………………………….................................................……. of<br>
+            (address)………………………....................………………………….....................................................................………… hereby<br>
+            declare that I have read over the contents of this document to the applicant in the<br>
+            …………………………………………………...................................................................................................................………....<br>
+            language and he/she appeared to understand some before thumb printing.
+          </div>
+          <div class="sig-row">
+            <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Signature</div></div>
+            <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Date (d d / m m / y y y y)</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /form-main -->
+
+    <div class="form-sidebar">
+      <div class="note" style="margin-top:55mm;"><p>This is to determine the size of the Business i.e. small scale business, medium scale business or large scale business</p></div>
+      <div class="note-spacer"></div>
+      <div class="thumb-box"><span class="thumb-label">THUMB PRINT</span></div>
+    </div>
+  </div>
+  <div class="page-footer">3 of 4</div>
+</div>
+
+<!-- ═══════════════════  PAGE 4  ═══════════════════ -->
+<div class="page" id="page-4">
+
+  <div class="office-use-box">
+    <div class="office-use-header"><span class="section-marker">(N)</span><span class="office-title">For Office Use Only</span></div>
+    <div style="padding-left:9mm;">
+      <div class="address-field" style="padding-left:0;"><div class="field-label">Date of Submission of Document*</div><div class="char-boxes-row" id="nDate"></div></div>
+      <div class="address-field" style="padding-left:0;"><div class="field-label">Name of Company Inspector*</div><div class="char-boxes-row" id="nInspector"></div></div>
+      <div class="address-field" style="padding-left:0;"><div class="field-label">Filing Date*</div><div class="char-boxes-row" id="nFiling"></div></div>
+      <div class="address-field" style="padding-left:0;"><div class="field-label">Signature*</div><div class="sig-dotted-line"></div></div>
+    </div>
+  </div>
+
+  <div class="full-dotted-divider">……………………………………………………………………………………………………………………………………………………………………………………………………………………</div>
+
+  <div class="important-section">
+    <div class="info-heading">Important Information</div>
+    <div class="info-subheading">MSME Classification in Ghana</div>
+    <table class="msme-table">
+      <thead>
+        <tr><th>Business Name Category</th><th>Employment Size (Permanent staff)</th><th>Turnover</th><th>Assets</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Micro</td><td style="text-align:center;">1-5</td><td>≤US $25,000</td><td>≤US $25,000</td></tr>
+        <tr><td>Small</td><td style="text-align:center;">6-30</td><td>US$25,001 - US$1,000,000</td><td>US$25,001 - US$1,000,000</td></tr>
+        <tr><td>Medium</td><td style="text-align:center;">31-100</td><td>US$1,000,001 – US$3,000,000</td><td>US$1,000,001 – US$3,000,000</td></tr>
+      </tbody>
+    </table>
+    <div class="table-footnote">Business Names will be categorized as MSME based on employment size and any other variable.) All amount in USD should be converted into Ghana cedis at Prevailing Bank rate</div>
+  </div>
+
+  <div class="notice-block">
+    <div class="notice-heading">Privacy Notice</div>
+    <div class="notice-text"><strong>Collection of Information:</strong> We collect personal identifiable information, like names, postal addresses, email addresses, etc., when voluntarily submitted by our customers. The information provided is used to fulfill your specific request.</div>
+    <div class="notice-text"><strong>Distribution of Information:</strong> This would be done as permitted or required by law / Companies Act 2019 (Act 992)</div>
+    <div class="notice-text"><strong>Commitment to Data Security:</strong> Your personal identifiable information is kept secure. Only authorized employees, agents and contractors who have agreed to keep information secure and confidential have access to this information.</div>
+  </div>
+
+  <div class="notice-block">
+    <div class="notice-heading">Change Notice</div>
+    <div class="notice-text">Every Proprietor/Proprietress is required to furnish the Registrar with any change after incorporation e.g. Change of Business Name, Change of Address, Change Nature of Business etc.</div>
+  </div>
+
+  <div class="notice-block">
+    <div class="notice-heading">Annual Renewal</div>
+    <div class="notice-text">BUY or Download Business Renewal Form<br>Fee of 25GHC for a year</div>
+  </div>
+
+  <div class="notice-block">
+    <div class="notice-heading">Check List (✔)</div>
+    <div class="notice-text mb-1">Please make sure you have complied with the following</div>
+    <table class="checklist-table">
+      <tbody>
+        <tr><td><span class="check-box"></span></td><td>The document has been signed at all indicated places</td></tr>
+        <tr><td><span class="check-box"></span></td><td>Filled TIN Form(s), if any</td></tr>
+        <tr><td><span class="check-box"></span></td><td>Provided Digital Address and Email Address</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-footer">4 of 4</div>
+</div>
+
+<script>
+/* Populate character-box grids */
+function boxes(id, n) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var f = document.createDocumentFragment();
+  for (var i = 0; i < n; i++) {
+    var d = document.createElement('div');
+    d.className = 'char-box';
+    f.appendChild(d);
+  }
+  el.appendChild(f);
+}
+
+/* Page 1 */
+boxes('biz1',    34); boxes('biz2',    34);
+boxes('bOthers', 28);
+boxes('isic1',   18); boxes('isic2', 18); boxes('isic3', 18);
+boxes('isicDesc',34);
+boxes('dDigital',20); boxes('dHouse',34); boxes('dStreet',34); boxes('dCity',34);
+
+/* Page 2 */
+boxes('dDistrict',34); boxes('dRegion',34); boxes('dLandlord',30);
+boxes('eDigital',20); boxes('eHouse',34); boxes('eStreet',34);
+boxes('eCity',34); boxes('eDistrict',34); boxes('eRegion',34);
+boxes('fDigital',20); boxes('fHouse',34); boxes('fStreet',34);
+boxes('fCity',34); boxes('fDistrict',34); boxes('fRegion',34);
+boxes('gCo',28); boxes('gNumber',18); boxes('gTown',28); boxes('gRegion',28);
+boxes('hPhone1',14); boxes('hPhone2',14);
+boxes('hMobile1',14); boxes('hMobile2',14); boxes('hFax',14);
+boxes('hEmail',32); boxes('hWebsite',32);
+boxes('iFirst',30); boxes('iMiddle',30); boxes('iLast',30); boxes('iFormer',30);
+
+/* Page 3 */
+boxes('iNationality',30); boxes('iOccupation',30);
+boxes('iMobile1',14); boxes('iMobile2',14); boxes('iFax',14);
+boxes('iEmail',32); boxes('iTin',20); boxes('iGhCard',26);
+boxes('jDigital',20); boxes('jHouse',34); boxes('jStreet',34);
+boxes('jCity',34); boxes('jDistrict',34); boxes('jRegion',34); boxes('jCountry',34);
+boxes('kRevenue',28); boxes('kEmployees',18);
+boxes('lBop',22);
+
+/* Page 4 */
+boxes('nDate',16); boxes('nInspector',30); boxes('nFiling',16);
+</script>
+</body>
+</html>
