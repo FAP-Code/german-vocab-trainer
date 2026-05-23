@@ -1030,8 +1030,8 @@ const StepHI = ({ data, setData, errors }) => (
         {[["resDigital","Digital Address","GA-123-4567"],["resHouse","House/Building/Flat","HOUSE NO"],
           ["resStreet","Street Name","STREET NAME"],["resCity","City","CITY"],
           ["resDistrict","District","DISTRICT"],["resRegion","Region","REGION"],["resCountry","Country","GHANA"]].map(([k,l,p]) => (
-          <Field key={k} label={l} required={REQUIRED[k]}>
-            <Input value={data[k]} onChange={v => setData({ ...data, [k]: v })} placeholder={p} />
+          <Field key={k} label={l} required={REQUIRED[k]} error={errors[k]}>
+            <Input value={data[k]} onChange={v => setData({ ...data, [k]: v })} placeholder={p} error={errors[k]} />
           </Field>
         ))}
       </div>
@@ -1108,7 +1108,62 @@ const StepJKL = ({ data, setData, errors }) => (
 );
 
 // ── VALIDATION ──────────────────────────────────────────────────────────────
-const validateStep = () => ({});
+const STEP_FIELDS = [
+  // Step 0 – A: Business Name
+  { businessName: "Business name is required" },
+  // Step 1 – B: Sector
+  { sectors: "Select at least one sector" },
+  // Step 2 – C: Activities & commencement
+  { dateCommencement: "Date of commencement is required" },
+  // Step 3 – D: Registered office address
+  {
+    regDigital: "Digital address is required",
+    regHouse:   "House/building name or number is required",
+    regStreet:  "Street name is required",
+    regCity:    "City is required",
+  },
+  // Step 4 – EFG: Proprietor details
+  {
+    firstName: "First name is required",
+    lastName:  "Last name is required",
+    dob:       "Date of birth is required",
+    gender:    "Gender is required",
+  },
+  // Step 5 – HI: Contact & residential address
+  {
+    mobile1:    "Mobile number 1 is required",
+    email:      "Email address is required",
+    resStreet:  "Residential street is required",
+    resCity:    "Residential city is required",
+    resRegion:  "Residential region is required",
+    resCountry: "Residential country is required",
+  },
+  // Step 6 – JKL: Identity, MSME
+  {
+    ghanaCard:           "Ghana Card number is required",
+    tin:                 "TIN is required",
+    nationality:         "Nationality is required",
+    occupation:          "Occupation is required",
+    resMobile1:          "Mobile number is required",
+    resEmail:            "Email address is required",
+    revenueEnvisaged:    "Revenue envisaged is required",
+    employeesEnvisaged:  "Number of employees is required",
+  },
+];
+
+const validateStep = (step, data) => {
+  const rules = STEP_FIELDS[step] || {};
+  const errs = {};
+  for (const [field, msg] of Object.entries(rules)) {
+    const val = data[field];
+    if (field === "sectors") {
+      if (!Array.isArray(val) || val.length === 0) errs[field] = msg;
+    } else if (!val || (typeof val === "string" && !val.trim())) {
+      errs[field] = msg;
+    }
+  }
+  return errs;
+};
 
 
 // ── MAIN APP ────────────────────────────────────────────────────────────────
