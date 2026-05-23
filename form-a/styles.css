@@ -1,6 +1,6 @@
 /* ============================================================
    FORM A – Registration of Business Name – Sole Proprietorship
-   Forensic reconstruction stylesheet
+   Forensic reconstruction stylesheet  •  print-first, A4
    ============================================================ */
 
 /* --- Reset & Base --- */
@@ -19,12 +19,12 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 8.5pt;
   color: #000;
-  background: #ccc;
+  background: #bbb;
   line-height: 1.3;
 }
 
 /* ============================================================
-   PAGE CONTAINER (A4 = 210mm × 297mm)
+   PAGE CONTAINER  (A4 = 210 mm × 297 mm)
    ============================================================ */
 .page {
   width: 210mm;
@@ -35,9 +35,8 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
   page-break-after: always;
-  overflow: hidden;
 }
 
 /* ============================================================
@@ -47,7 +46,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 4mm;
-  border-bottom: 1.5pt solid #000;
+  border-bottom: 2px solid #000;
   padding-bottom: 2.5mm;
   margin-bottom: 2.5mm;
 }
@@ -65,12 +64,11 @@ body {
   width: 24mm;
   height: 24mm;
   border-radius: 50%;
-  border: 2pt solid #003399;
+  border: 2px solid #003399;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #fff;
-  position: relative;
   overflow: hidden;
 }
 
@@ -78,20 +76,19 @@ body {
   text-align: center;
   font-size: 4.5pt;
   font-weight: bold;
-  line-height: 1.25;
+  line-height: 1.3;
   color: #003399;
   padding: 1mm;
 }
 
 .logo-eagle {
-  font-size: 9pt;
+  font-size: 10pt;
   display: block;
   margin: 0.5mm 0;
-  color: #003399;
 }
 
 .logo-orc {
-  font-size: 7pt;
+  font-size: 7.5pt;
   font-weight: bold;
   color: #cc0000;
   letter-spacing: 0.5pt;
@@ -113,18 +110,11 @@ body {
   letter-spacing: 0.2pt;
 }
 
-.form-code-block {
-  display: flex;
-  width: 100%;
-  align-items: baseline;
-  justify-content: center;
-  margin: 1mm 0;
-}
-
 .form-code {
-  font-size: 15pt;
+  font-size: 16pt;
   font-weight: bold;
-  letter-spacing: 1pt;
+  letter-spacing: 2pt;
+  margin: 1mm 0;
 }
 
 .form-title {
@@ -132,12 +122,12 @@ body {
   font-weight: bold;
 }
 
-.form-subtitle {
+.form-subtitle,
+.form-subtype {
   font-size: 8pt;
 }
 
 .form-subtype {
-  font-size: 8pt;
   font-weight: bold;
 }
 
@@ -145,41 +135,46 @@ body {
    INSTRUCTIONS BOX
    ============================================================ */
 .instructions {
-  border: 0.75pt solid #000;
+  border: 1px solid #000;
   padding: 2mm 3mm;
   margin-bottom: 2.5mm;
   font-size: 7.5pt;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.instr-bold { font-weight: bold; }
+.instr-bold {
+  font-weight: bold;
+}
 
 /* ============================================================
-   FORM BODY: Two-column layout
+   FORM BODY: Two-column layout (main ~70%  |  sidebar ~30%)
    ============================================================ */
 .form-body {
   display: flex;
   flex: 1;
-  gap: 3.5mm;
+  gap: 4mm;
+  min-width: 0;
 }
 
 .form-main {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .form-sidebar {
-  width: 51mm;
+  width: 50mm;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  gap: 2mm;
 }
 
 /* ============================================================
    SECTIONS
    ============================================================ */
 .section {
-  margin-bottom: 2.5mm;
+  margin-bottom: 3mm;
 }
 
 .section-marker-row {
@@ -212,7 +207,7 @@ body {
 }
 
 /* ============================================================
-   ADDRESS / FIELD ROWS
+   FIELD ROWS
    ============================================================ */
 .address-field {
   margin-bottom: 1.5mm;
@@ -222,19 +217,18 @@ body {
 .field-label {
   font-size: 7.5pt;
   margin-bottom: 0.5mm;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .field-label small {
   font-size: 6.5pt;
 }
 
-/* Inline field row (label + checkboxes etc.) */
 .field-row-inline {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 2.5mm;
+  gap: 3mm;
   margin-bottom: 1.5mm;
   padding-left: 9mm;
   font-size: 8pt;
@@ -245,41 +239,49 @@ body {
 }
 
 /* ============================================================
-   CHARACTER BOXES (input grid)
+   CHARACTER BOXES — the individual letter input squares
    ============================================================ */
+
+/* Full-width row of character boxes */
 .char-boxes-row {
   display: flex;
   width: 100%;
-  border: 0.5pt solid #000;
-  height: 5.5mm;
+  border: 1px solid #000;
+  height: 7mm;
+  overflow: hidden;
 }
 
+/* Each individual square inside the row */
 .char-box {
   flex: 1;
-  border-right: 0.5pt solid #000;
+  border-right: 1px solid #000;
   height: 100%;
+  min-width: 3px; /* never collapse */
 }
 
 .char-box:last-child {
   border-right: none;
 }
 
-/* Smaller boxes for ISIC / short fields */
+/* Shorter row used for ISIC codes and phone numbers */
 .char-boxes-sm {
   display: flex;
-  border: 0.5pt solid #000;
-  height: 5.5mm;
-  flex: 1;
+  width: 100%;          /* fills block / grid cell */
+  min-width: 0;
+  border: 1px solid #000;
+  height: 7mm;
+  overflow: hidden;
 }
 
 /* ============================================================
-   CHECKBOXES & RADIO BUTTONS
+   CHECKBOXES & RADIO CIRCLES
    ============================================================ */
 .check-box {
   display: inline-block;
   width: 3.5mm;
   height: 3.5mm;
-  border: 0.75pt solid #000;
+  min-width: 3.5mm;
+  border: 1px solid #000;
   vertical-align: middle;
   flex-shrink: 0;
 }
@@ -288,7 +290,8 @@ body {
   display: inline-block;
   width: 3.5mm;
   height: 3.5mm;
-  border: 0.75pt solid #000;
+  min-width: 3.5mm;
+  border: 1px solid #000;
   border-radius: 50%;
   vertical-align: middle;
   flex-shrink: 0;
@@ -303,25 +306,38 @@ body {
 }
 
 /* ============================================================
-   SECTOR CHECKBOX GRID (Section B)
+   SECTOR CHECKBOX GRID (Section B)  — 4 columns
    ============================================================ */
 .sector-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1mm 1.5mm;
+  gap: 1.5mm 2mm;
+  width: 100%;
   padding-left: 9mm;
-  margin-bottom: 1.5mm;
+  margin-bottom: 2mm;
   font-size: 7.5pt;
 }
 
 .sector-item {
   display: flex;
   align-items: center;
-  gap: 1mm;
+  gap: 1.5mm;
+  line-height: 1.2;
+}
+
+/* "Others" open text line */
+.others-input-row {
+  padding-left: 9mm;
+  margin-bottom: 1.5mm;
+}
+
+.others-label {
+  font-size: 7.5pt;
+  margin-bottom: 0.5mm;
 }
 
 /* ============================================================
-   ISIC SECTION (Section C)
+   ISIC ROWS (Section C)
    ============================================================ */
 .isic-desc-text {
   font-size: 7.5pt;
@@ -336,22 +352,31 @@ body {
   gap: 2mm;
   padding-left: 9mm;
   margin-bottom: 1.5mm;
+  width: 100%;
 }
 
 .isic-label {
   font-size: 8pt;
   white-space: nowrap;
   min-width: 22mm;
+  flex-shrink: 0;
+}
+
+/* inside .isic-row, the sm box must flex-grow */
+.isic-row .char-boxes-sm {
+  flex: 1;
+  width: auto;
 }
 
 .isic-alt-text {
   font-size: 7.5pt;
   padding-left: 9mm;
   margin-bottom: 1mm;
+  line-height: 1.4;
 }
 
 /* ============================================================
-   DATE BOXES
+   DATE BOXES  (D D | M M | Y Y Y Y)
    ============================================================ */
 .date-field {
   display: inline-flex;
@@ -363,76 +388,50 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 5.5mm;
-  height: 5.5mm;
-  border: 0.5pt solid #000;
+  width: 6mm;
+  height: 6mm;
+  border: 1px solid #000;
   font-size: 7pt;
   font-weight: bold;
-  color: #555;
+  color: #666;
 }
 
 .date-gap {
-  width: 1.5mm;
-  text-align: center;
-  font-size: 7pt;
+  width: 2mm;
 }
 
 /* ============================================================
-   TWO-COLUMN CONTACT FIELDS
+   TWO-COLUMN CONTACT / PHONE LAYOUT
    ============================================================ */
 .two-col-contact {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 3mm;
+  column-gap: 4mm;
+  padding-left: 9mm;
+  width: 100%;
 }
 
-/* ============================================================
-   SIDEBAR NOTES
-   ============================================================ */
-.note {
-  border: 0.5pt solid #000;
-  padding: 2mm 2.5mm;
-  font-size: 7pt;
-  line-height: 1.45;
-  background: #fff;
-  margin-bottom: 2.5mm;
-}
-
-.note p {
+/* each cell inside the 2-col contact grid */
+.two-col-contact .addr-cell {
   margin-bottom: 1.5mm;
 }
 
-.note p:last-child {
-  margin-bottom: 0;
+.two-col-contact .addr-cell .field-label {
+  font-size: 7.5pt;
+  margin-bottom: 0.5mm;
 }
 
-.note-spacer {
-  flex: 1;
-}
-
-/* Thumb print box */
-.thumb-box {
-  border: 0.75pt solid #000;
-  height: 32mm;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: auto;
-}
-
-.thumb-label {
-  font-size: 8.5pt;
-  font-weight: bold;
+/* span full width inside 2-col grid */
+.col-span-2 {
+  grid-column: 1 / -1;
 }
 
 /* ============================================================
-   SIGNATURE / DECLARATION SECTION (M)
+   SIGNATURE / DECLARATION  (Section M)
    ============================================================ */
 .declaration-block {
-  border: 0.5pt solid #000;
+  border: 1px solid #000;
   padding: 3mm;
-  margin-bottom: 2mm;
 }
 
 .decl-header {
@@ -452,23 +451,26 @@ body {
 .decl-right-text {
   font-size: 8pt;
   font-style: italic;
-  text-align: right;
-  max-width: 60mm;
-  line-height: 1.4;
   font-weight: bold;
+  text-align: right;
+  max-width: 65mm;
+  line-height: 1.4;
 }
 
 .decl-name-line {
   font-size: 8pt;
-  margin-bottom: 0.5mm;
   padding-left: 9mm;
+  margin-bottom: 0.5mm;
+  display: flex;
+  align-items: flex-end;
+  gap: 2mm;
 }
 
 .decl-name-underline {
-  display: inline-block;
-  border-bottom: 0.5pt solid #000;
-  width: 100mm;
-  vertical-align: bottom;
+  flex: 1;
+  border-bottom: 1px solid #000;
+  height: 1px;
+  margin-bottom: 1px;
 }
 
 .decl-name-label {
@@ -481,24 +483,24 @@ body {
 
 .sig-row {
   display: flex;
-  gap: 8mm;
-  margin-bottom: 2.5mm;
+  gap: 10mm;
+  margin-bottom: 3mm;
   padding-left: 9mm;
 }
 
 .sig-block {
   flex: 1;
+  text-align: center;
 }
 
 .sig-line {
-  border-bottom: 0.5pt solid #000;
-  height: 8mm;
+  border-bottom: 1px solid #000;
+  height: 10mm;
   margin-bottom: 1mm;
 }
 
 .sig-label {
-  font-size: 7pt;
-  text-align: center;
+  font-size: 7.5pt;
 }
 
 .fill-note {
@@ -512,8 +514,46 @@ body {
 .nb-para {
   font-size: 7.5pt;
   padding-left: 9mm;
-  line-height: 1.8;
+  line-height: 2;
   margin-bottom: 2mm;
+}
+
+/* ============================================================
+   SIDEBAR NOTES
+   ============================================================ */
+.note {
+  border: 1px solid #000;
+  padding: 2mm 2.5mm;
+  font-size: 7pt;
+  line-height: 1.5;
+  background: #fff;
+}
+
+.note p {
+  margin-bottom: 1.5mm;
+}
+
+.note p:last-child {
+  margin-bottom: 0;
+}
+
+.note-spacer {
+  flex: 1;
+}
+
+/* Thumb print box */
+.thumb-box {
+  border: 1px solid #000;
+  height: 30mm;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumb-label {
+  font-size: 8.5pt;
+  font-weight: bold;
 }
 
 /* ============================================================
@@ -522,17 +562,16 @@ body {
 .page-footer {
   text-align: center;
   font-size: 8pt;
-  border-top: 0.5pt solid #000;
-  padding-top: 2mm;
-  margin-top: auto;
+  border-top: 1px solid #000;
   padding-top: 2.5mm;
+  margin-top: auto;
 }
 
 /* ============================================================
-   PAGE 4: Office Use, Table, Notices
+   PAGE 4: Office Use, MSME Table, Notices, Check List
    ============================================================ */
 .office-use-box {
-  border: 0.75pt solid #000;
+  border: 1px solid #000;
   padding: 3mm;
   margin-bottom: 3mm;
 }
@@ -551,7 +590,7 @@ body {
 }
 
 .sig-dotted-line {
-  border-bottom: 0.5pt dotted #000;
+  border-bottom: 1px dotted #000;
   height: 7mm;
   margin-bottom: 1mm;
   width: 100%;
@@ -560,13 +599,13 @@ body {
 .full-dotted-divider {
   text-align: center;
   font-size: 7pt;
-  letter-spacing: 1pt;
   margin: 3mm 0;
   overflow: hidden;
   white-space: nowrap;
+  letter-spacing: 1pt;
 }
 
-/* MSME Table */
+/* MSME table */
 .important-section {
   margin-bottom: 3mm;
 }
@@ -580,8 +619,8 @@ body {
 .info-subheading {
   font-size: 9pt;
   font-weight: bold;
-  margin-bottom: 1.5mm;
   text-decoration: underline;
+  margin-bottom: 1.5mm;
 }
 
 .msme-table {
@@ -593,13 +632,13 @@ body {
 
 .msme-table th,
 .msme-table td {
-  border: 0.5pt solid #000;
+  border: 1px solid #000;
   padding: 1.5mm 2mm;
   text-align: left;
 }
 
 .msme-table th {
-  background-color: #d9d9d9;
+  background-color: #d8d8d8;
   font-weight: bold;
   text-align: center;
 }
@@ -622,8 +661,8 @@ body {
 .notice-heading {
   font-size: 9pt;
   font-weight: bold;
-  margin-bottom: 1mm;
   text-decoration: underline;
+  margin-bottom: 1mm;
 }
 
 .notice-text {
@@ -631,19 +670,20 @@ body {
   line-height: 1.5;
 }
 
-.notice-text strong {
-  font-weight: bold;
+.notice-text + .notice-text {
+  margin-top: 1mm;
 }
 
-/* Check List */
+/* Check List table */
 .checklist-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 8pt;
+  margin-top: 1mm;
 }
 
 .checklist-table td {
-  border: 0.5pt solid #000;
+  border: 1px solid #000;
   padding: 1.5mm 2mm;
   vertical-align: middle;
 }
@@ -654,35 +694,18 @@ body {
 }
 
 /* ============================================================
-   UTILITY HELPERS
+   HELPERS
    ============================================================ */
 .mt-1 { margin-top: 1mm; }
 .mt-2 { margin-top: 2mm; }
 .mt-3 { margin-top: 3mm; }
 .mb-1 { margin-bottom: 1mm; }
 .mb-2 { margin-bottom: 2mm; }
-.pl-9 { padding-left: 9mm; }
-.bold { font-weight: bold; }
+.bold  { font-weight: bold; }
 .small { font-size: 7pt; }
-.inline-flex { display: inline-flex; align-items: center; gap: 1mm; }
-
-/* GHA prefix field */
-.gha-prefix-row {
-  display: flex;
-  align-items: center;
-  gap: 1mm;
-  padding-left: 9mm;
-  margin-bottom: 1.5mm;
-}
-
-.gha-prefix {
-  font-size: 8pt;
-  font-weight: bold;
-  white-space: nowrap;
-}
 
 /* ============================================================
-   PRINT STYLESHEET
+   PRINT
    ============================================================ */
 @media print {
   body {
@@ -697,7 +720,7 @@ body {
     page-break-after: always;
     width: 210mm;
     height: 297mm;
-    padding: 8mm 12mm 8mm 12mm;
+    padding: 8mm 12mm;
     overflow: hidden;
   }
 
