@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { detectPitch, groupPitchesToNotes, type PitchSample } from '../utils/pitchDetection';
+import { detectPitch, groupPitchesToNotes } from '../utils/pitchDetection';
+import type { PitchSample } from '../utils/pitchDetection';
 import {
   noteEventToDetectedNote,
 } from '../utils/noteConversion';
@@ -60,11 +61,15 @@ export function useAudioRecorder(): AudioRecorderAPI {
       analyser.getByteTimeDomainData(waveBuffer);
       setWaveformData(new Uint8Array(waveBuffer));
 
-      const freq = detectPitch(buffer, sampleRate);
-      if (freq > 0) {
+      const result = detectPitch(buffer, sampleRate);
+      if (result.frequency > 0 && result.confidence >= 0.45) {
         const now = audioCtxRef.current!.currentTime;
-        pitchSamplesRef.current.push({ frequency: freq, time: now });
-        setCurrentFrequency(Math.round(freq * 10) / 10);
+        pitchSamplesRef.current.push({
+          frequency: result.frequency,
+          time: now,
+          confidence: result.confidence,
+        });
+        setCurrentFrequency(Math.round(result.frequency * 10) / 10);
       } else {
         setCurrentFrequency(0);
       }

@@ -1,63 +1,131 @@
 /**
- * Autocorrelation-based monophonic pitch detector.
- * Suitable for humming/singing (one note at a time, ~80–880 Hz range).
+ * NSDF-based monophonic pitch detector (McLeod Pitch Method approach).
  *
- * Future improvement: replace with ML-based model (e.g. CREPE, SPICE)
- * for polyphonic and more accurate pitch tracking.
+ * ROOT CAUSE OF PREVIOUS OCTAVE ERRORS:
+ *   The old autocorrelation found the GLOBAL MAXIMUM lag. For voiced audio the
+ *   ACF peak at 2T (one octave down) is often slightly higher than the peak at
+ *   T (the true fundamental) because both T and 2T align harmonics at 2T. This
+ *   made every detected note come out one octave too low.
+ *
+ * FIX — two-part:
+ *   1. Switch to NSDF (Normalized Square Difference Function), which normalises
+ *      by the instantaneous signal power at each lag so peaks at T and 2T are
+ *      more equal in height.
+ *   2. "First-good-peak" strategy: among all local maxima, pick the FIRST one
+ *      (smallest lag = highest frequency) whose value is ≥ 0.85 × global max.
+ *      For a typical singing voice the fundamental peak always qualifies, while
+ *      the subharmonic peak comes later and is therefore skipped.
+ *
+ * Future upgrade: replace with CREPE / SPICE (ONNX Runtime Web) for ML-grade
+ * accuracy and polyphonic support.
  */
 
-const MIN_FREQ = 60;   // ~B1, below normal singing range
-const MAX_FREQ = 1200; // a bit above soprano high C
+const MIN_FREQ = 70;    // Hz — slightly below C2, covers bass voices
+const MAX_FREQ = 1050;  // Hz — C6 + a little headroom
 
-export function detectPitch(buffer: Float32Array, sampleRate: number): number {
-  // -1 means "no pitch / silence"
+// ─── Public types ─────────────────────────────────────────────────────────────
+
+export interface PitchResult {
+  frequency: number;  // Hz; -1 = silence / no pitch found
+  confidence: number; // 0–1 (NSDF peak height)
+}
+
+export interface PitchSample {
+  frequency: number;
+  time: number;       // AudioContext.currentTime
+  confidence: number;
+}
+
+export interface NoteEvent {
+  frequency: number;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  confidence: number; // average over constituent samples
+}
+
+// ─── Core detector ────────────────────────────────────────────────────────────
+
+export function detectPitch(buffer: Float32Array, sampleRate: number): PitchResult {
   const rms = getRMS(buffer);
-  if (rms < 0.008) return -1;
+  if (rms < 0.01) return { frequency: -1, confidence: 0 };
 
-  const maxPeriod = Math.floor(sampleRate / MIN_FREQ);
-  const minPeriod = Math.ceil(sampleRate / MAX_FREQ);
+  const W = buffer.length;
+  const maxLag = Math.min(W - 1, Math.floor(sampleRate / MIN_FREQ));
+  const minLag = Math.ceil(sampleRate / MAX_FREQ);
 
-  // Trim edges to reduce noise influence
-  const buf = trimSilence(buffer);
-  if (buf.length < minPeriod * 2) return -1;
+  if (maxLag <= minLag) return { frequency: -1, confidence: 0 };
 
-  // Build normalized autocorrelation
-  const acSize = Math.min(buf.length, maxPeriod + 1);
-  const ac = new Float32Array(acSize);
+  const nsdf = computeNSDF(buffer, W, maxLag);
 
-  // Compute power of full signal once
-  let power = 0;
-  for (let i = 0; i < buf.length; i++) power += buf[i] * buf[i];
-
-  for (let lag = 0; lag < acSize; lag++) {
-    let sum = 0;
-    for (let i = 0; i < buf.length - lag; i++) {
-      sum += buf[i] * buf[i + lag];
-    }
-    ac[lag] = sum / (power + 1e-9);
-  }
-
-  // Find first dip then first peak (standard ACF pitch trick)
-  let dip = minPeriod;
-  while (dip < acSize - 1 && ac[dip] > ac[dip + 1]) dip++;
-
-  let bestLag = -1;
-  let bestVal = 0.3; // confidence threshold
-  for (let lag = dip; lag < acSize; lag++) {
-    if (ac[lag] > bestVal) {
-      bestVal = ac[lag];
-      bestLag = lag;
+  // Find all local maxima above zero in [minLag, maxLag]
+  const peaks: { lag: number; val: number }[] = [];
+  for (let lag = minLag + 1; lag < maxLag; lag++) {
+    if (
+      nsdf[lag] > 0 &&
+      nsdf[lag] >= nsdf[lag - 1] &&
+      nsdf[lag] >= nsdf[lag + 1]
+    ) {
+      peaks.push({ lag, val: nsdf[lag] });
     }
   }
 
-  if (bestLag < minPeriod) return -1;
+  if (peaks.length === 0) return { frequency: -1, confidence: 0 };
 
-  // Parabolic interpolation for sub-sample accuracy
-  const refined = refine(ac, bestLag);
+  const globalMax = peaks.reduce((m, p) => Math.max(m, p.val), 0);
+  if (globalMax < 0.4) return { frequency: -1, confidence: 0 };
+
+  // First-good-peak: the FIRST peak ≥ 0.85 × global max.
+  // Choosing "first" = smallest lag = highest frequency → avoids subharmonics.
+  const chosen = peaks.find(p => p.val >= 0.85 * globalMax);
+  if (!chosen) return { frequency: -1, confidence: 0 };
+
+  // Sub-sample accuracy via parabolic interpolation on NSDF
+  const refined = parabolicRefine(nsdf, chosen.lag);
   const freq = sampleRate / refined;
 
-  if (freq < MIN_FREQ || freq > MAX_FREQ) return -1;
-  return freq;
+  if (freq < MIN_FREQ || freq > MAX_FREQ) return { frequency: -1, confidence: 0 };
+  return { frequency: freq, confidence: chosen.val };
+}
+
+// ─── NSDF ─────────────────────────────────────────────────────────────────────
+//
+// NSDF(lag) = 2 * r(lag) / m(lag)
+//
+// where:
+//   r(lag) = Σ_{i=0}^{N-lag-1} x[i] · x[i+lag]   (cross-correlation)
+//   m(lag) = Σ_{i=0}^{N-lag-1} x[i]^2
+//           + Σ_{i=lag}^{N-1}   x[i]^2            (instantaneous power)
+//
+// Computing m(lag) from a prefix-sum array: m(lag) = cs[N-lag] + cs[N] - cs[lag]
+// (where cs[i] = Σ_{j<i} x[j]^2)
+
+function computeNSDF(buf: Float32Array, W: number, maxLag: number): Float32Array {
+  // Build prefix-sum of squares
+  const cs = new Float32Array(W + 1);
+  for (let i = 0; i < W; i++) cs[i + 1] = cs[i] + buf[i] * buf[i];
+  const totalSq = cs[W];
+
+  const nsdf = new Float32Array(maxLag + 1);
+  for (let lag = 0; lag <= maxLag; lag++) {
+    let corr = 0;
+    const len = W - lag;
+    for (let i = 0; i < len; i++) corr += buf[i] * buf[i + lag];
+
+    const m = cs[W - lag] + totalSq - cs[lag];
+    nsdf[lag] = m > 1e-10 ? (2 * corr) / m : 0;
+  }
+  return nsdf;
+}
+
+function parabolicRefine(nsdf: Float32Array, peak: number): number {
+  if (peak <= 0 || peak >= nsdf.length - 1) return peak;
+  const x1 = nsdf[peak - 1];
+  const x2 = nsdf[peak];
+  const x3 = nsdf[peak + 1];
+  const denom = 2 * x2 - x1 - x3;
+  if (Math.abs(denom) < 1e-10) return peak;
+  return peak + (x3 - x1) / (2 * denom);
 }
 
 function getRMS(buffer: Float32Array): number {
@@ -66,77 +134,46 @@ function getRMS(buffer: Float32Array): number {
   return Math.sqrt(sum / buffer.length);
 }
 
-function trimSilence(buffer: Float32Array): Float32Array {
-  const threshold = 0.015;
-  let start = 0;
-  let end = buffer.length - 1;
-  while (start < buffer.length / 2 && Math.abs(buffer[start]) < threshold) start++;
-  while (end > buffer.length / 2 && Math.abs(buffer[end]) < threshold) end--;
-  return buffer.slice(start, end + 1);
-}
+// ─── Note grouping ────────────────────────────────────────────────────────────
 
-function refine(ac: Float32Array, peak: number): number {
-  if (peak <= 0 || peak >= ac.length - 1) return peak;
-  const x1 = ac[peak - 1];
-  const x2 = ac[peak];
-  const x3 = ac[peak + 1];
-  const denom = 2 * x2 - x1 - x3;
-  if (Math.abs(denom) < 1e-9) return peak;
-  return peak + (x3 - x1) / (2 * denom);
-}
-
-/**
- * Groups a stream of pitch samples (frequency + timestamp) into note events.
- * Consecutive samples within SEMITONE_TOLERANCE semitones are merged.
- *
- * Replace this with a proper HMM or neural grouping for AI-grade accuracy.
- */
-export interface PitchSample {
-  frequency: number;
-  time: number;
-}
-
-export interface NoteEvent {
-  frequency: number;
-  startTime: number;
-  endTime: number;
-  duration: number;
-}
-
-const SEMITONE_TOLERANCE = 1.2; // semitones
-const MIN_NOTE_DURATION = 0.08;  // seconds – ignore very short blips
+const SEMITONE_TOLERANCE = 1.5; // semitones — consecutive samples within this are merged
+const MIN_NOTE_DURATION = 0.1;  // seconds — discard blips shorter than this
+const MIN_CONFIDENCE = 0.45;    // discard low-confidence samples
 
 export function groupPitchesToNotes(samples: PitchSample[]): NoteEvent[] {
-  if (samples.length === 0) return [];
+  // Filter low-confidence samples first
+  const valid = samples.filter(s => s.confidence >= MIN_CONFIDENCE);
+  if (valid.length === 0) return [];
 
   const events: NoteEvent[] = [];
-  let groupStart = 0;
   const freqToSemitone = (f: number) => 12 * Math.log2(f / 440) + 69;
 
-  for (let i = 1; i <= samples.length; i++) {
-    const prev = samples[i - 1];
-    const curr = i < samples.length ? samples[i] : null;
+  let groupStart = 0;
+  for (let i = 1; i <= valid.length; i++) {
+    const prev = valid[i - 1];
+    const curr = i < valid.length ? valid[i] : null;
 
-    const differentNote =
+    const split =
       !curr ||
-      Math.abs(freqToSemitone(curr.frequency) - freqToSemitone(prev.frequency)) >
-        SEMITONE_TOLERANCE ||
-      curr.time - prev.time > 0.3; // gap > 300ms → new note
+      Math.abs(freqToSemitone(curr.frequency) - freqToSemitone(prev.frequency)) > SEMITONE_TOLERANCE ||
+      curr.time - prev.time > 0.35; // gap > 350 ms → new note
 
-    if (differentNote) {
-      const grouped = samples.slice(groupStart, i);
-      const avgFreq =
-        grouped.reduce((s, p) => s + p.frequency, 0) / grouped.length;
-      const start = grouped[0].time;
-      const end = grouped[grouped.length - 1].time;
-      const dur = end - start;
+    if (split) {
+      const group = valid.slice(groupStart, i);
+      const dur = group[group.length - 1].time - group[0].time;
 
       if (dur >= MIN_NOTE_DURATION) {
+        // Use median frequency (more robust than mean against outlier samples)
+        const sorted = [...group].sort((a, b) => a.frequency - b.frequency);
+        const medianFreq = sorted[Math.floor(sorted.length / 2)].frequency;
+        const avgConf = group.reduce((s, p) => s + p.confidence, 0) / group.length;
+
         events.push({
-          frequency: avgFreq,
-          startTime: start,
-          endTime: end,
+          frequency: medianFreq,
+          startTime: group[0].time,
+          endTime: group[group.length - 1].time,
           duration: dur,
+          confidence: avgConf,
         });
       }
       groupStart = i;

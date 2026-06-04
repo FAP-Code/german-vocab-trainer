@@ -1,5 +1,10 @@
-import type { DetectedNote, Recording, ExportData } from '../types';
-import { noteToStaffPosition, isAccidental } from './noteConversion';
+import type { DetectedNote, Recording, ExportData, NoteValue } from '../types';
+import {
+  noteToStaffPosition,
+  getLedgerLinePositions,
+  isAccidental,
+  durationToNoteValue,
+} from './noteConversion';
 
 // ─── JSON Export ──────────────────────────────────────────────────────────────
 
@@ -18,16 +23,13 @@ export function exportJSON(recording: Recording): void {
       uniqueNotes: [...new Set(recording.notes.map((n) => n.name + n.octave))],
     },
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: 'application/json',
-  });
-  triggerDownload(blob, `${sanitizeFilename(recording.name)}.json`);
+  triggerDownload(
+    new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+    `${sanitizeFilename(recording.name)}.json`,
+  );
 }
 
 // ─── MIDI Export ─────────────────────────────────────────────────────────────
-// Standard MIDI File (Type 0) — single track
-// Future improvement: integrate @tonejs/midi or a dedicated MIDI library for
-// full SMF support (velocity curves, multiple channels, etc.)
 
 export function exportMIDI(recording: Recording): void {
   const ticksPerBeat = 480;
@@ -35,147 +37,113 @@ export function exportMIDI(recording: Recording): void {
   const microsecondsPerBeat = Math.round(60_000_000 / bpm);
   const secondsPerTick = 60 / (bpm * ticksPerBeat);
 
-  const trackEvents: number[] = [];
+  const track: number[] = [];
 
-  // Track name meta-event
-  appendMetaEvent(trackEvents, 0, 0x03, stringToBytes(recording.name));
-
-  // Tempo meta-event (FF 51 03 tt tt tt)
-  appendMetaEvent(trackEvents, 0, 0x51, [
+  appendMetaEvent(track, 0, 0x03, stringToBytes(recording.name));
+  appendMetaEvent(track, 0, 0x51, [
     (microsecondsPerBeat >> 16) & 0xff,
     (microsecondsPerBeat >> 8) & 0xff,
     microsecondsPerBeat & 0xff,
   ]);
-
-  // Program change: Piano (channel 0, program 0)
-  trackEvents.push(...varLen(0), 0xc0, 0x00);
+  track.push(...varLen(0), 0xc0, 0x00); // program: piano
 
   let lastTick = 0;
-
   for (const note of recording.notes) {
     const startTick = Math.round(note.timestamp / secondsPerTick);
-    const endTick = Math.round(
-      (note.timestamp + note.duration) / secondsPerTick,
-    );
+    const endTick = Math.round((note.timestamp + note.duration) / secondsPerTick);
     const midi = Math.max(0, Math.min(127, note.midiNumber));
-
-    // Note On
     const deltaOn = startTick - lastTick;
-    trackEvents.push(...varLen(deltaOn), 0x90, midi, 80);
+    track.push(...varLen(deltaOn), 0x90, midi, 80);
     lastTick = startTick;
-
-    // Note Off
     const deltaOff = endTick - lastTick;
-    trackEvents.push(...varLen(deltaOff), 0x80, midi, 0);
+    track.push(...varLen(deltaOff), 0x80, midi, 0);
     lastTick = endTick;
   }
+  appendMetaEvent(track, 0, 0x2f, []);
 
-  // End of track
-  appendMetaEvent(trackEvents, 0, 0x2f, []);
-
-  const trackData = new Uint8Array(trackEvents);
-
-  // MIDI header chunk
+  const trackData = new Uint8Array(track);
   const header = new Uint8Array([
-    0x4d, 0x54, 0x68, 0x64, // MThd
-    0x00, 0x00, 0x00, 0x06, // chunk length = 6
-    0x00, 0x00,             // format 0
-    0x00, 0x01,             // 1 track
+    0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06,
+    0x00, 0x00, 0x00, 0x01,
     (ticksPerBeat >> 8) & 0xff, ticksPerBeat & 0xff,
   ]);
-
-  // Track chunk
   const trackLen = trackData.length;
   const trackHeader = new Uint8Array([
-    0x4d, 0x54, 0x72, 0x6b, // MTrk
-    (trackLen >> 24) & 0xff,
-    (trackLen >> 16) & 0xff,
-    (trackLen >> 8) & 0xff,
-    trackLen & 0xff,
+    0x4d, 0x54, 0x72, 0x6b,
+    (trackLen >> 24) & 0xff, (trackLen >> 16) & 0xff,
+    (trackLen >> 8) & 0xff, trackLen & 0xff,
   ]);
-
-  const midi = new Uint8Array(
-    header.length + trackHeader.length + trackData.length,
-  );
-  midi.set(header, 0);
-  midi.set(trackHeader, header.length);
-  midi.set(trackData, header.length + trackHeader.length);
-
-  const blob = new Blob([midi], { type: 'audio/midi' });
-  triggerDownload(blob, `${sanitizeFilename(recording.name)}.mid`);
+  const out = new Uint8Array(header.length + trackHeader.length + trackData.length);
+  out.set(header, 0);
+  out.set(trackHeader, header.length);
+  out.set(trackData, header.length + trackHeader.length);
+  triggerDownload(new Blob([out], { type: 'audio/midi' }), `${sanitizeFilename(recording.name)}.mid`);
 }
 
 // ─── PDF Export ───────────────────────────────────────────────────────────────
-// Produces a simple A4 sheet with the note sequence and a staff preview.
-// Future improvement: use VexFlow or LilyPond for proper music engraving.
 
 export async function exportPDF(recording: Recording): Promise<void> {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const PAGE_W = 210;
-  const MARGIN = 18;
+  const MARGIN = 16;
   const CONTENT_W = PAGE_W - MARGIN * 2;
 
-  // Header
+  // ── Header bar ──────────────────────────────────────────────────────────────
   doc.setFillColor(79, 70, 229);
-  doc.rect(0, 0, PAGE_W, 28, 'F');
+  doc.rect(0, 0, PAGE_W, 26, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('HumScore', MARGIN, 17);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(recording.name, MARGIN, 24);
-
-  // Meta info
-  doc.setTextColor(60, 60, 60);
+  doc.text('HumScore', MARGIN, 15);
   doc.setFontSize(9);
-  doc.text(
-    `Recorded: ${new Date(recording.createdAt).toLocaleString()}   |   Notes detected: ${recording.notes.length}   |   Duration: ${recording.durationSeconds.toFixed(1)}s`,
-    MARGIN,
-    36,
-  );
+  doc.setFont('helvetica', 'normal');
+  doc.text(recording.name, MARGIN, 22);
 
-  // Divider
-  doc.setDrawColor(200, 200, 200);
-  doc.line(MARGIN, 40, PAGE_W - MARGIN, 40);
-
-  // Staff preview
-  drawPDFStaff(doc, recording.notes, MARGIN, 50, CONTENT_W);
-
-  // Note table
-  let y = 115;
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(50, 50, 50);
-  doc.text('Detected Notes', MARGIN, y);
-  y += 6;
-
-  const headers = ['#', 'Note', 'Octave', 'Freq (Hz)', 'Duration (s)', 'Time (s)'];
-  const colWidths = [12, 25, 22, 32, 34, 30];
-  const colX = colWidths.reduce<number[]>((acc, w, i) => {
-    acc.push(i === 0 ? MARGIN : acc[i - 1] + colWidths[i - 1]);
-    return acc;
-  }, []);
-
-  // Table header
-  doc.setFillColor(240, 240, 250);
-  doc.rect(MARGIN, y, CONTENT_W, 7, 'F');
+  // ── Meta ────────────────────────────────────────────────────────────────────
+  doc.setTextColor(60, 60, 60);
   doc.setFontSize(8);
-  doc.setTextColor(60, 60, 130);
-  headers.forEach((h, i) => doc.text(h, colX[i] + 1, y + 5));
-  y += 8;
+  doc.text(
+    `Recorded: ${new Date(recording.createdAt).toLocaleString()}   |   ` +
+    `Notes: ${recording.notes.length}   |   Duration: ${recording.durationSeconds.toFixed(1)}s`,
+    MARGIN, 34,
+  );
+  doc.setDrawColor(200, 200, 200);
+  doc.line(MARGIN, 37, PAGE_W - MARGIN, 37);
 
-  doc.setTextColor(50, 50, 50);
-  recording.notes.forEach((note, idx) => {
-    if (y > 270) {
-      doc.addPage();
-      y = 20;
-    }
+  // ── Staff preview ────────────────────────────────────────────────────────────
+  drawPDFStaff(doc, recording.notes, MARGIN, 42, CONTENT_W);
+
+  // ── Note table ───────────────────────────────────────────────────────────────
+  let y = 110;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text('Detected Notes', MARGIN, y);
+  y += 5;
+
+  const headers = ['#', 'Note', 'Oct', 'Freq (Hz)', 'Dur (s)', 'Time (s)', 'Symbol', 'Conf'];
+  const colW    = [10,   20,    14,    28,         22,       22,         22,       16];
+  const colX: number[] = [];
+  let cx = MARGIN;
+  for (const w of colW) { colX.push(cx); cx += w; }
+
+  doc.setFillColor(235, 235, 248);
+  doc.rect(MARGIN, y, CONTENT_W, 6.5, 'F');
+  doc.setFontSize(7.5);
+  doc.setTextColor(60, 60, 130);
+  headers.forEach((h, i) => doc.text(h, colX[i] + 1, y + 4.5));
+  y += 7;
+
+  doc.setTextColor(40, 40, 40);
+  for (let idx = 0; idx < recording.notes.length; idx++) {
+    if (y > 272) { doc.addPage(); y = 18; }
+    const note = recording.notes[idx];
+    const nv: NoteValue = note.noteValue ?? durationToNoteValue(note.duration);
     if (idx % 2 === 0) {
-      doc.setFillColor(248, 248, 252);
-      doc.rect(MARGIN, y - 1, CONTENT_W, 6.5, 'F');
+      doc.setFillColor(248, 248, 253);
+      doc.rect(MARGIN, y - 1, CONTENT_W, 6, 'F');
     }
     const row = [
       String(idx + 1),
@@ -184,95 +152,148 @@ export async function exportPDF(recording: Recording): Promise<void> {
       note.frequency.toFixed(1),
       note.duration.toFixed(2),
       note.timestamp.toFixed(2),
+      nv,
+      note.confidence != null ? note.confidence.toFixed(2) : '—',
     ];
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     row.forEach((v, i) => doc.text(v, colX[i] + 1, y + 4));
-    y += 6.5;
-  });
+    y += 6;
+  }
 
-  // Footer
-  const pageCount = doc.getNumberOfPages();
-  for (let p = 1; p <= pageCount; p++) {
+  // ── Footer ──────────────────────────────────────────────────────────────────
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
     doc.setPage(p);
-    doc.setFontSize(8);
-    doc.setTextColor(160, 160, 160);
-    doc.text(
-      `Generated by HumScore  •  Page ${p} of ${pageCount}`,
-      PAGE_W / 2,
-      292,
-      { align: 'center' },
-    );
+    doc.setFontSize(7.5);
+    doc.setTextColor(170, 170, 170);
+    doc.text(`Generated by HumScore  |  Page ${p} of ${pages}`, PAGE_W / 2, 292, { align: 'center' });
   }
 
   doc.save(`${sanitizeFilename(recording.name)}.pdf`);
 }
 
-// ─── PDF Staff Drawing ────────────────────────────────────────────────────────
+// ─── PDF Staff ────────────────────────────────────────────────────────────────
+//
+// Y coordinate system in jsPDF (all in mm, y increases downward):
+//   staffTop     = y param + small offset  (top line = F5)
+//   staffTop + 4*LS  = bottom line = E4
+//   middle line (B4) = staffTop + 2*LS
+//
+// Staff position mapping:
+//   noteY = middleLineY - pos * (LS/2)
+//   pos=+4 (F5) → staffTop ✓
+//   pos=-4 (E4) → staffTop + 4*LS ✓
 
 function drawPDFStaff(
-  doc: InstanceType<typeof import('jspdf').jsPDF>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  doc: any,
   notes: DetectedNote[],
-  x: number,
-  y: number,
+  marginX: number,
+  startY: number,
   width: number,
 ): void {
-  const LINE_SPACING = 4;
-  const staffTop = y + 10;
+  const LS = 3.8;         // mm between staff lines
+  const staffTop = startY + 6;  // top staff line (F5)
+  const bottomLineY = staffTop + 4 * LS;  // E4
+  const middleLineY = staffTop + 2 * LS;  // B4
 
-  // Draw 5 staff lines
-  doc.setDrawColor(100, 100, 100);
-  doc.setLineWidth(0.3);
+  // 5 staff lines
+  doc.setDrawColor(90, 90, 90);
+  doc.setLineWidth(0.25);
   for (let i = 0; i < 5; i++) {
-    const lineY = staffTop + i * LINE_SPACING;
-    doc.line(x, lineY, x + width, lineY);
+    doc.line(marginX, staffTop + i * LS, marginX + width, staffTop + i * LS);
   }
 
-  // Treble clef label
-  doc.setFontSize(24);
-  doc.setTextColor(80, 80, 80);
-  doc.text('𝄞', x + 1, staffTop + LINE_SPACING * 4 + 2);
+  // ── Treble clef (drawn geometrically — no Unicode) ──────────────────────────
+  // Root cause of "Ø4Ý" garbage: the Unicode char U+1D11E is absent from the
+  // standard jsPDF Helvetica/Times fonts. We draw an approximation instead.
+  const clefX = marginX + 1;
+  const stemX = clefX + 4;
+  const gLineY = bottomLineY - LS;       // G4 = 2nd line from bottom
 
-  // Notes
-  const noteStartX = x + 16;
-  const noteSpacing = Math.min(14, (width - 20) / Math.max(notes.length, 1));
+  doc.setLineWidth(0.55);
+  doc.setDrawColor(40, 40, 40);
+  // Vertical stem
+  doc.line(stemX, staffTop - 5, stemX, bottomLineY + 4);
+  // Top spiral (small oval above top line)
+  doc.setLineWidth(0.4);
+  doc.ellipse(stemX + 1.5, staffTop - 3, 2.5, 2.0, 'D');
+  // Loop around G4 line
+  doc.setLineWidth(0.5);
+  doc.ellipse(stemX, gLineY, 2.8, 1.8, 'D');
+  // Bottom scroll
+  doc.setLineWidth(0.35);
+  doc.ellipse(stemX - 1.5, bottomLineY + 2.5, 2.0, 1.2, 'D');
 
-  notes.slice(0, Math.floor((width - 20) / noteSpacing)).forEach((note, i) => {
+  // ── Notes ────────────────────────────────────────────────────────────────────
+  const noteStartX = marginX + 14;
+  const noteSpacing = Math.min(12, (width - 18) / Math.max(notes.length, 1));
+  const maxNotes = Math.floor((width - 18) / noteSpacing);
+
+  notes.slice(0, maxNotes).forEach((note, i) => {
     const pos = noteToStaffPosition(note);
-    const noteY = staffTop + LINE_SPACING * 2 - pos * (LINE_SPACING / 2);
+    const noteY = middleLineY - pos * (LS / 2);
     const noteX = noteStartX + i * noteSpacing;
+    const nv: NoteValue = note.noteValue ?? durationToNoteValue(note.duration);
+    const isOpen = nv === 'whole' || nv === 'half';
+    const headRX = nv === 'whole' ? 2.4 : 1.9;
+    const headRY = 1.3;
 
     // Ledger lines
-    doc.setDrawColor(80, 80, 80);
+    doc.setDrawColor(70, 70, 70);
+    doc.setLineWidth(0.22);
+    for (const lp of getLedgerLinePositions(pos)) {
+      const ly = middleLineY - lp * (LS / 2);
+      doc.line(noteX - headRX - 1.5, ly, noteX + headRX + 1.5, ly);
+    }
+
+    // Stem (not for whole)
+    if (nv !== 'whole') {
+      const stemDown = pos >= 0;
+      const sx = stemDown ? noteX - headRX + 0.5 : noteX + headRX - 0.5;
+      const sy1 = noteY;
+      const sy2 = stemDown ? noteY + LS * 3.5 : noteY - LS * 3.5;
+      doc.setLineWidth(0.3);
+      doc.setDrawColor(20, 20, 20);
+      doc.line(sx, sy1, sx, sy2);
+
+      // Flag for eighth note
+      if (nv === 'eighth') {
+        doc.setLineWidth(0.3);
+        // Simple curved flag approximation using a short diagonal line
+        if (stemDown) {
+          doc.line(sx, sy2, sx - 2.5, sy2 + 1.5);
+        } else {
+          doc.line(sx, sy2, sx + 2.5, sy2 + 1.5);
+        }
+      }
+    }
+
+    // Note head
     doc.setLineWidth(0.3);
-    if (pos >= 6) {
-      for (let l = 6; l <= pos + (pos % 2 === 0 ? 0 : -1); l += 2) {
-        const ly = staffTop + LINE_SPACING * 2 - l * (LINE_SPACING / 2);
-        doc.line(noteX - 2, ly, noteX + 5, ly);
-      }
+    if (isOpen) {
+      doc.setDrawColor(20, 20, 20);
+      doc.ellipse(noteX, noteY, headRX, headRY, 'D');
+    } else {
+      doc.setFillColor(20, 20, 20);
+      doc.ellipse(noteX, noteY, headRX, headRY, 'F');
     }
-    if (pos <= -6) {
-      for (let l = -6; l >= pos - (pos % 2 === 0 ? 0 : 1); l -= 2) {
-        const ly = staffTop + LINE_SPACING * 2 - l * (LINE_SPACING / 2);
-        doc.line(noteX - 2, ly, noteX + 5, ly);
-      }
-    }
-
-    // Note head (filled ellipse)
-    doc.setFillColor(30, 30, 30);
-    doc.ellipse(noteX + 1.5, noteY, 2.0, 1.4, 'F');
-
-    // Stem
-    const stemDir = pos >= 0 ? -1 : 1;
-    const stemEnd = stemDir === -1 ? noteY - 10 : noteY + 10;
-    doc.setLineWidth(0.4);
-    doc.line(noteX + 3.5, noteY, noteX + 3.5, stemEnd);
 
     // Accidental
     if (isAccidental(note.name)) {
       doc.setFontSize(5);
-      doc.setTextColor(30, 30, 30);
-      doc.text(note.name.includes('#') ? '#' : 'b', noteX - 4, noteY + 1.5);
+      doc.setTextColor(20, 20, 20);
+      doc.text(
+        note.name.includes('#') ? '#' : 'b',
+        noteX - headRX - 2.5,
+        noteY + headRY + 0.5,
+      );
     }
+
+    // Note label below head (small text)
+    doc.setFontSize(5.5);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`${note.name}${note.octave}`, noteX, noteY + headRY + 2.5, { align: 'center' });
   });
 }
 
@@ -289,12 +310,7 @@ function varLen(value: number): number[] {
   return bytes;
 }
 
-function appendMetaEvent(
-  arr: number[],
-  delta: number,
-  type: number,
-  data: number[],
-): void {
+function appendMetaEvent(arr: number[], delta: number, type: number, data: number[]): void {
   arr.push(...varLen(delta), 0xff, type, ...varLen(data.length), ...data);
 }
 
@@ -313,8 +329,5 @@ function triggerDownload(blob: Blob, filename: string): void {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 100);
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
 }

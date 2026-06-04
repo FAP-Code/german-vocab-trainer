@@ -1,3 +1,5 @@
+export type NoteValue = 'whole' | 'half' | 'quarter' | 'eighth';
+
 export interface DetectedNote {
   id: string;
   name: string;       // e.g. "C", "C#", "Db"
@@ -6,6 +8,8 @@ export interface DetectedNote {
   frequency: number;  // Hz
   duration: number;   // seconds
   timestamp: number;  // seconds from start of recording
+  noteValue?: NoteValue;   // symbol based on duration
+  confidence?: number;     // 0–1, pitch detection confidence
 }
 
 export interface Recording {
@@ -14,7 +18,7 @@ export interface Recording {
   createdAt: string; // ISO date string
   notes: DetectedNote[];
   durationSeconds: number;
-  audioBlobBase64?: string; // base64-encoded audio for replay
+  audioBlobBase64?: string;
   audioMimeType?: string;
 }
 
